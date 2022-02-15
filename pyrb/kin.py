@@ -60,6 +60,10 @@ def SE3_exp(screw_vec, theta):
     return T
 
 
+def SE3_mul(T, p):
+    return T[0:3, 0:3] @ p + T[0:3, 3]
+
+
 class KinematicChain:
 
     def __init__(self, kinematics):
