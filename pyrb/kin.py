@@ -1,6 +1,19 @@
 import numpy as np
 
 
+def forward(kinematic_chain):
+    T = np.eye(4)
+    all_cs = []
+    for screw_vec, theta, cs in kinematic_chain:
+        T = T @ SE3_exp(screw_vec, theta)
+        all_cs.append(T @ cs)
+    return all_cs
+
+
+def angle_from_SE3_rot_z(T):
+    return np.arctan2(T[1, 0], T[0, 0])
+
+
 def SE3_mul(T, p):
     return T[0:3, 0:3] @ p + T[0:3, 3]
 
@@ -22,10 +35,6 @@ def rot_z_to_SO3(angle):
     R[0, 1] = -np.sin(angle)
     R[1, 0] = np.sin(angle)
     return R
-
-
-# def angle_from_SE3(T):
-#     return np.arctan2(T[1, 0], T[0, 0])
 
 
 def vec_to_skew(w_vec):
@@ -60,8 +69,14 @@ def SE3_exp(screw_vec, theta):
     return T
 
 
-def SE3_mul(T, p):
-    return T[0:3, 0:3] @ p + T[0:3, 3]
+def rot_trans_to_SE3(R=None, p=None):
+    T = np.eye(4)
+    if R is not None:
+        T[0:3, 0:3] = R
+    if p is not None:
+        p = p.ravel()
+        T[0: p.shape[0], 3] = p
+    return T
 
 
 class KinematicChain:
