@@ -13,7 +13,15 @@ def generate_random_trajectory(
     if start_pos is not None:
         beta[0, :] = start_pos
     beta_d = np.random.uniform(0, 2 * np.pi, (nr_via_points, nr_joints))
+    poly_coefficients = generate_cubic_coefficients_from_via_points_velocities(beta, beta_d, delta_t=delta_t)
+    return calculate_psaj(poly_coefficients, delta_t=delta_t, nr_points=nr_points)
+
+
+def generate_cubic_coefficients_from_via_points_velocities(points, velocities, delta_t):
+    beta = points
+    beta_d = velocities
     coeffs = []
+    nr_via_points = beta.shape[0]
     for i in range(nr_via_points):
         i_nxt = (i + 1) % nr_via_points
         a_0 = beta[i]
@@ -23,11 +31,11 @@ def generate_random_trajectory(
         a_3 = 2 * beta[i] + (beta_d[i] + beta_d[i_nxt]) * delta_t - 2 * beta[i_nxt]
         a_3 /= (delta_t ** 3)
         coeffs.append((a_0, a_1, a_2, a_3))
-    return calculate_psaj(coeffs, nr_via_points, delta_t, nr_points=nr_points)
+    return coeffs
 
 
-def calculate_psaj(coeffs, nr_viapoints, delta_t, nr_points=500):
-    N = nr_viapoints
+def calculate_psaj(coeffs, delta_t, nr_points=500):
+    N = len(coeffs)
     ts = np.linspace(0, N * delta_t, nr_points)
     poses, spds, accs, jrks = [], [], [], []
     for t in ts:

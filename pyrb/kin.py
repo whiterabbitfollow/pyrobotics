@@ -18,6 +18,20 @@ def SE3_mul(T, p):
     return T[0:3, 0:3] @ p + T[0:3, 3]
 
 
+def SE3_mul_many(T, points):
+    return (T[0:3, 0:3] @ points.T + T[0:3, 3].reshape(-1, 1)).T
+
+
+def SE3_inv(T):
+    R = T[0:3, 0:3]
+    p = T[0:3, 3].reshape(-1, 1)
+    return np.block(
+        [
+            [R.T, -R.T @ p],
+            [T[-1, :].reshape(1, -1)]
+        ]
+    )
+
 def rot_trans_to_SE3(R=None, p=None):
     T = np.eye(4)
     if R is not None:
