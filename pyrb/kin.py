@@ -93,7 +93,7 @@ def rot_trans_to_SE3(R=None, p=None):
     return T
 
 
-class KinematicChain:
+class SerialKinematicChain:
 
     def __init__(self, kinematics):
         self.nr_joints = len(kinematics) - 1
@@ -101,6 +101,7 @@ class KinematicChain:
         self.frames = np.c_[[np.eye(4) for _ in range(self.nr_joints + 1)]]
         self.screws = np.zeros((self.nr_joints, 6))
         self.initialize_parts(kinematics)
+        self.transforms = None
 
     def initialize_parts(self, kinematics):
         kin_vec_total = np.zeros((3,))
@@ -131,33 +132,3 @@ class KinematicChain:
                 T = T @ SE3_exp(screw_vec, theta)
             all_cs.append(T @ cs)
         return all_cs
-
-
-if __name__ == "__main__":
-    kinematics = [
-        (np.array([0.0, 0.0, 0.0]), np.array([0.0, 0.0, 1.0])),
-        (np.array([1.0, 0.0, 0.0]), np.array([0.0, 0.0, 1.0])),
-        (np.array([1.0, 0.0, 0.0]), None)
-    ]
-    chain = KinematicChain(kinematics)
-    ts = chain.forward(np.array([-np.pi/2, 0]), include_ee=True)
-
-    for t in ts:
-        print("")
-        print(t)
-
-    # kinematics = [
-    #     (np.array([0.0, 0.1, 0.0]), np.array([0.0, 1.0, 0.0])),
-    #     (np.array([0.0, 0.0, 0.0]), np.array([0.0, 0.0, 1.0])),
-    #     (np.array([0.3, 0.0, 0.0]), np.array([0.0, 0.0, 1.0])),
-    #     (np.array([0.3, 0.0, 0.0]), None)
-    # ]
-    # link_geometries = [
-    #     (np.array([0.1, 0.1, 0.1]), np.array([0.0, 0.1, 0.0])),
-    #     (np.array([0.3, 0.1, 0.1]), np.array([0.3, 0.0, 0.0])),
-    #     (np.array([0.3, 0.1, 0.1]), np.array([0.3, 0.0, 0.0])),
-    # ]
-    # chain = KinematicChain(kinematics)
-    # ts = chain.forward(np.array([np.pi/2, 0.0, 0.0]))
-    # for t in ts:
-    #     print(t)
