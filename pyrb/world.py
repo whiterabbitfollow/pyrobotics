@@ -99,6 +99,7 @@ class StaticBoxesWorld:
         }
         self.data = WorldData((-1, 1), (-1, 1))
         self.robot = Manipulator(robot_data)
+        self.joint_limits = self.robot.get_joint_limits()
         self.obstacle_region = RandomBoxesObstacleRegion(self.data)
 
     def reset(self):
@@ -108,3 +109,17 @@ class StaticBoxesWorld:
     def is_collision_free(self, q):
         self.robot.set_config(q)
         return not self.robot.collision_manager.in_collision_other(self.obstacle_region.collision_manager)
+
+    def is_state_feasible(self, q):
+        return (self.joint_limits[:, 0] <= q).all() & (q <= self.joint_limits[:, 1]).all()
+
+    def is_collision_free_transition(self, q_src, q_dst):
+        N = 10
+        is_collision_free = False
+        for i in range(0, N + 1):
+            alpha = i / N
+            q = q_dst * alpha + (1 - alpha) * q_src
+            is_collision_free = self.is_collision_free(q)
+            if not is_collision_free:
+                break
+        return is_collision_free
