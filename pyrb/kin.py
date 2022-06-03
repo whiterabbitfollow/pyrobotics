@@ -32,6 +32,7 @@ def SE3_inv(T):
         ]
     )
 
+
 def rot_trans_to_SE3(R=None, p=None):
     T = np.eye(4)
     if R is not None:
@@ -83,16 +84,6 @@ def SE3_exp(screw_vec, theta):
     return T
 
 
-def rot_trans_to_SE3(R=None, p=None):
-    T = np.eye(4)
-    if R is not None:
-        T[0:3, 0:3] = R
-    if p is not None:
-        p = p.ravel()
-        T[0: p.shape[0], 3] = p
-    return T
-
-
 class SerialKinematicChain:
 
     def __init__(self, kinematics):
@@ -107,8 +98,8 @@ class SerialKinematicChain:
         kin_vec_total = np.zeros((3,))
         for i, (pos_rel_parent, rot_vec) in enumerate(kinematics[:-1]):
             kin_vec_total += pos_rel_parent
-            self.frames[i, 0:3, 3] = kin_vec_total
-            self.screws[i, 0:3] = rot_vec
+            self.frames[i, :3, 3] = kin_vec_total
+            self.screws[i, :3] = rot_vec
             self.screws[i, 3:] = np.cross(kin_vec_total, rot_vec)
         pos_ee, *_ = kinematics[-1]
         self.frames[-1, :3, 3] = kin_vec_total + pos_ee
