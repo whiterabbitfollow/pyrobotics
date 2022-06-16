@@ -24,14 +24,30 @@ def generate_cubic_coefficients_from_via_points_velocities(points, velocities, d
     nr_via_points = beta.shape[0]
     for i in range(nr_via_points):
         i_nxt = (i + 1) % nr_via_points
-        a_0 = beta[i]
-        a_1 = beta_d[i]
-        a_2 = 3 * beta[i_nxt] - 3 * beta[i] - 2 * beta_d[i] * delta_t - beta_d[i_nxt] * delta_t
-        a_2 /= (delta_t ** 2)
-        a_3 = 2 * beta[i] + (beta_d[i] + beta_d[i_nxt]) * delta_t - 2 * beta[i_nxt]
-        a_3 /= (delta_t ** 3)
-        coeffs.append((a_0, a_1, a_2, a_3))
+        coeffs.append(calculate_cubic_coefficients_between_via_points(
+            beta[i], beta_d[i], beta[i_nxt], beta_d[i_nxt], delta_t
+        ))
     return coeffs
+
+
+def calculate_cubic_coefficients_between_via_points(
+        position_start,
+        velocity_start,
+        position_end,
+        velocity_end,
+        delta_t
+    ):
+    beta_s = position_start
+    beta_d_s = velocity_start
+    beta_e = position_end
+    beta_d_e = velocity_end
+    a_0 = beta_s
+    a_1 = beta_d_s
+    a_2 = 3 * beta_e - 3 * beta_s - 2 * beta_d_s * delta_t - beta_d_e * delta_t
+    a_2 /= (delta_t ** 2)
+    a_3 = 2 * beta_s + (beta_d_s + beta_d_e) * delta_t - 2 * beta_e
+    a_3 /= (delta_t ** 3)
+    return a_0, a_1, a_2, a_3
 
 
 def calculate_psaj(coeffs, delta_t, nr_points=500):
@@ -39,19 +55,37 @@ def calculate_psaj(coeffs, delta_t, nr_points=500):
     ts = np.linspace(0, N * delta_t, nr_points)
     poses, spds, accs, jrks = [], [], [], []
     for t in ts:
-        t %= (delta_t * N)
+        t %= (delta_t * N)  # should only happen at last point?
         t_trunc = int(t // delta_t)
         a_0, a_1, a_2, a_3 = coeffs[t_trunc]
         dt = t - (t_trunc * delta_t)
-        pos = a_0 + a_1 * dt    + a_2 * dt ** 2 + a_3 * dt ** 3
-        spd =       a_1         + 2 * a_2 * dt  + 3 * a_3 * dt ** 2
-        acc =                     2 * a_2       + 6 * a_3 * dt
-        jrk =                                     6 * a_3
+        pos, spd, acc, jrk = calculate_pose_speed_acc_jerk_from_cubic_coefficients(a_0, a_1, a_2, a_3, dt)
         poses.append(pos)
         spds.append(spd)
         accs.append(acc)
         jrks.append(jrk)
     return np.c_[poses], np.c_[spds], np.c_[accs], np.c_[jrks]
+
+
+def interpolate_trajectory_from_cubic_coeffs(a_0, a_1, a_2, a_3, delta_t, nr_points):
+    ts = np.linspace(0, delta_t, nr_points)
+    poses, spds, accs, jrks = [], [], [], []
+    for t in ts:
+        pos, spd, acc, jrk = calculate_pose_speed_acc_jerk_from_cubic_coefficients(a_0, a_1, a_2, a_3, t)
+        poses.append(pos)
+        spds.append(spd)
+        accs.append(acc)
+        jrks.append(jrk)
+    return np.c_[poses], np.c_[spds], np.c_[accs], np.c_[jrks]
+
+
+def calculate_pose_speed_acc_jerk_from_cubic_coefficients(a_0, a_1, a_2, a_3, t):
+    pos = a_0 + a_1 * t + a_2 * t ** 2 + a_3 * t ** 3
+    spd = a_1 + 2 * a_2 * t + 3 * a_3 * t ** 2
+    acc = 2 * a_2 + 6 * a_3 * t
+    jrk = 6 * a_3
+    return pos, spd, acc, jrk
+
 
 
 

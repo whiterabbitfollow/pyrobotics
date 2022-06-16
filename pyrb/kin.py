@@ -15,16 +15,16 @@ def angle_from_SE3_rot_z(T):
 
 
 def SE3_mul(T, p):
-    return T[0:3, 0:3] @ p + T[0:3, 3]
+    return T[:3, :3] @ p + T[:3, 3]
 
 
 def SE3_mul_many(T, points):
-    return (T[0:3, 0:3] @ points.T + T[0:3, 3].reshape(-1, 1)).T
+    return (T[:3, :3] @ points.T + T[:3, 3].reshape(-1, 1)).T
 
 
 def SE3_inv(T):
-    R = T[0:3, 0:3]
-    p = T[0:3, 3].reshape(-1, 1)
+    R = T[:3, :3]
+    p = T[:3, 3].reshape(-1, 1)
     return np.block(
         [
             [R.T, -R.T @ p],
@@ -112,8 +112,7 @@ class SerialKinematicChain:
         nr_frames = self.nr_joints + 1 if include_ee else self.nr_joints
         kinematic_chain = [
             (self.screws[i, :], angles[i], self.frames[i, :, :])
-            if i != self.nr_joints else
-            (None, None, self.frames[i, :, :])
+            if i != self.nr_joints else (None, None, self.frames[i, :, :])
             for i in range(nr_frames)
         ]
         T = np.eye(4)

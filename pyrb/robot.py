@@ -3,23 +3,7 @@ import numpy as np
 
 import trimesh
 
-
-class Link:
-
-    def __init__(self, name, geometry):
-        self.name = name
-        self.width = geometry["width"]
-        self.height = geometry["height"]
-        # TODO: only 2D so far...
-        self.transform = None
-
-    def get_geometry(self, apply_trf=False):
-        geometry = trimesh.creation.box(extents=(self.width, self.height, self.height))
-        if apply_trf:
-            box_offset = pyrb.kin.rot_trans_to_SE3(p=np.array([self.width/2, 0, 0]))
-            transform = self.transform @ box_offset
-            geometry.apply_transform(transform)
-        return geometry
+from typing import Optional
 
 
 class Joint:
@@ -27,6 +11,62 @@ class Joint:
     def __init__(self, name, limits):
         self.name = name
         self.limits = limits
+        self.angle = 0
+
+
+class GeometryRectangle:
+
+    def __init__(self, width, height, depth, direction):
+        self.transform = None
+        self.direction = direction  # TODO: Need better name..
+        self.width = width
+        self.height = height
+        self.depth = depth
+        self.whd = (self.width, self.height, self.depth)
+
+    def set_transform(self, transform):
+        offset = np.array([0, 0, 0], dtype=np.float32)
+        offset[self.direction] = self.whd[self.direction]/2
+        box_offset_transform = pyrb.kin.rot_trans_to_SE3(p=offset)
+        self.transform = transform @ box_offset_transform
+
+    def produce_mesh(self, transformed=False):
+        mesh = trimesh.creation.box(extents=self.whd)
+        if transformed:
+            mesh.apply_transform(self.transform)
+        return mesh
+
+
+class Link:
+
+    def __init__(self, name, parent_joint: Joint, child_joint: Joint, geometry: Optional[GeometryRectangle] = None):
+        self.name = name
+        self.parent_joint = parent_joint
+        self.child_joint = child_joint
+        self.geometry = geometry
+        self.frame = None
+
+    def has_geometry(self):
+        return self.geometry is not None
+
+    def get_mesh(self, apply_trf=False):
+        # TODO: when will apply_trf be False??? also change name...
+        if self.geometry is None:
+            return None
+        return self.geometry.produce_mesh(transformed=apply_trf)
+
+    def get_mesh_transform(self):
+        if self.geometry is None:
+            return None
+        return self.geometry.transform
+
+    def set_frame(self, frame):
+        self.frame = frame
+        if self.geometry is not None:
+            self.geometry.set_transform(frame)
+
+    def set_parent_joint_angle(self, angle):
+        self.parent_joint.angle = angle
 
 
 class Manipulator(pyrb.kin.SerialKinematicChain):
@@ -65,11 +105,6 @@ class Manipulator(pyrb.kin.SerialKinematicChain):
         self.links, self.joints = [], []
         self.collision_manager = trimesh.collision.CollisionManager()
 
-        for i, link in enumerate(links):
-            link = Link(name=f"link_{i}", geometry=link["geometry"])
-            self.collision_manager.add_object(link.name, link.get_geometry())
-            self.links.append(link)
-
         for i, joint in enumerate(joints):
             self.joints.append(
                 Joint(
@@ -77,6 +112,23 @@ class Manipulator(pyrb.kin.SerialKinematicChain):
                     limits=joint.get("limits", (-np.pi, np.pi))
                 )
             )
+
+        for i, link in enumerate(links):
+            parent_joint = self.joints[i]
+            if i + 1 == len(self.joints):
+                child_joint = None  # end_effector
+            else:
+                child_joint = self.joints[i + 1]
+            geometry = GeometryRectangle(**link["geometry"]) if link["geometry"] else None
+            link = Link(
+                name=f"link_{i}",
+                geometry=geometry,
+                parent_joint=parent_joint,
+                child_joint=child_joint
+            )
+            if link.has_geometry():
+                self.collision_manager.add_object(link.name, link.get_mesh())
+            self.links.append(link)
 
     def get_joint_limits(self):
         return np.vstack([joint.limits for joint in self.joints])
@@ -87,9 +139,10 @@ class Manipulator(pyrb.kin.SerialKinematicChain):
         self.update_geometries(transforms)
 
     def update_geometries(self, transforms):
-        for link, transform in zip(self.links, transforms):
-            link.transform = transform
-            box_offset = pyrb.kin.rot_trans_to_SE3(p=np.array([link.width / 2, 0, 0]))
-            collision_trf = transform @ box_offset
-            self.collision_manager.set_transform(name=link.name, transform=collision_trf)
-
+        # update frames better name...
+        for link, transform, angle in zip(self.links, transforms, self.config):
+            link.set_frame(transform)
+            link.set_parent_joint_angle(angle)
+            if link.has_geometry():
+                mesh_transform = link.get_mesh_transform()
+                self.collision_manager.set_transform(name=link.name, transform=mesh_transform)
