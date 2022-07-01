@@ -3,7 +3,7 @@ import numpy as np
 
 import trimesh
 
-from typing import Optional
+from typing import Optional, List
 
 
 class Joint:
@@ -102,7 +102,8 @@ class Manipulator(pyrb.kin.SerialKinematicChain):
         end_effector_position = robot_data.get("end_effector", {}).get("position", np.zeros((3,)))
         kinematics.append((end_effector_position, None))
         super().__init__(kinematics)
-        self.links, self.joints = [], []
+        self.links: List[Link] = []
+        self.joints: List[Joint] = []
         self.collision_manager = trimesh.collision.CollisionManager()
 
         for i, joint in enumerate(joints):
@@ -130,6 +131,8 @@ class Manipulator(pyrb.kin.SerialKinematicChain):
                 self.collision_manager.add_object(link.name, link.get_mesh())
             self.links.append(link)
 
+        self.joint_limits = self.get_joint_limits()
+
     def get_joint_limits(self):
         return np.vstack([joint.limits for joint in self.joints])
 
@@ -146,3 +149,6 @@ class Manipulator(pyrb.kin.SerialKinematicChain):
             if link.has_geometry():
                 mesh_transform = link.get_mesh_transform()
                 self.collision_manager.set_transform(name=link.name, transform=mesh_transform)
+
+    def is_configuration_feasible(self, q):
+        return (self.joint_limits[:, 0] <= q).all() & (q <= self.joint_limits[:, 1]).all()

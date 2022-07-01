@@ -1,10 +1,12 @@
 import numpy as np
 from collections import defaultdict
 
+from pyrb.mp.base_world import BaseMPWorld
+
 
 class RRTPlanner:
 
-    def __init__(self, world, max_nr_vertices=int(1e4), max_distance_local_planner=0.5):
+    def __init__(self, world: BaseMPWorld, max_nr_vertices=int(1e4), max_distance_local_planner=0.5):
         self.vertices = np.zeros((max_nr_vertices, world.robot.nr_joints))
         self.edges_child_to_parent = np.zeros((max_nr_vertices,), dtype=int)
         self.edges_parent_to_children = defaultdict(list)
@@ -59,7 +61,7 @@ class RRTPlanner:
     def sample_collision_free_config(self):
         while True:
             q = np.random.uniform(self.configuration_limits[:, 0], self.configuration_limits[:, 1])
-            if self.world.is_collision_free(q):
+            if self.world.is_collision_free_state(q):
                 return q
 
     def find_nearest_vertex(self, q):
@@ -91,7 +93,7 @@ class RRTPlanner:
         for i in range(1, nr_steps + 1):
             alpha = i/max_nr_steps
             q = q_dst * alpha + (1-alpha) * q_src
-            if self.world.is_collision_free(q):
+            if self.world.is_collision_free_state(q):
                 q_new = q
             else:
                 break
