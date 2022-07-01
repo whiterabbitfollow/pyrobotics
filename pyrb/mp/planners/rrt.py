@@ -7,14 +7,14 @@ from pyrb.mp.base_world import BaseMPWorld
 class RRTPlanner:
 
     def __init__(self, world: BaseMPWorld, max_nr_vertices=int(1e4), max_distance_local_planner=0.5):
+        self.max_nr_vertices = max_nr_vertices
+        self.min_step_size = 0.01
         self.vertices = np.zeros((max_nr_vertices, world.robot.nr_joints))
         self.edges_child_to_parent = np.zeros((max_nr_vertices,), dtype=int)
         self.edges_parent_to_children = defaultdict(list)
         self.max_distance_local_planner = max_distance_local_planner
-        self.min_step_size = 0.01
         self.vert_cnt = 0
         self.goal_region_radius = 1e-1
-        self.max_nr_vertices = max_nr_vertices
         self.world = world
         self.configuration_limits = self.world.robot.get_joint_limits()
 
@@ -24,7 +24,7 @@ class RRTPlanner:
         while not self.is_tree_full():
             q_free = self.sample_collision_free_config()
             i_vert, q_nearest = self.find_nearest_vertex(q_free)
-            q_new = self.plan_locally(q_nearest, q_free)
+            _, q_new = self.plan_locally(q_nearest, q_free)
             if q_new is not None:
                 self.insert_vertex_in_tree(self.vert_cnt, q_new)
                 self.create_edge(i_vert, self.vert_cnt)
@@ -89,12 +89,14 @@ class RRTPlanner:
             nr_steps = int(self.max_distance_local_planner / self.min_step_size)
         else:
             nr_steps = int(distance / self.min_step_size)
-        q_new = None
+        q_new, collision_free_transition = None, False
         for i in range(1, nr_steps + 1):
             alpha = i/max_nr_steps
             q = q_dst * alpha + (1-alpha) * q_src
             if self.world.is_collision_free_state(q):
                 q_new = q
+                collision_free_transition = True
             else:
+                collision_free_transition = False
                 break
-        return q_new
+        return collision_free_transition, q_new

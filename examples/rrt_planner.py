@@ -4,7 +4,7 @@ import matplotlib
 
 import numpy as np
 
-from examples.world import StaticBoxesWorld
+from examples.static_world import StaticBoxesWorld
 from pyrb.mp.planners.rrt import RRTPlanner
 
 
