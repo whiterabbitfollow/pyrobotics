@@ -87,8 +87,6 @@ def calculate_pose_speed_acc_jerk_from_cubic_coefficients(a_0, a_1, a_2, a_3, t)
     return pos, spd, acc, jrk
 
 
-
-
 def calculate_poses(coeffs, nr_viapoints, delta_t, nr_points=500):
     N = nr_viapoints
     ts = np.linspace(0, N * delta_t, nr_points)
