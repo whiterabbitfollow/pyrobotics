@@ -5,16 +5,14 @@ import matplotlib
 import numpy as np
 
 from examples.static_world import StaticBoxesWorld
-from pyrb.mp.planners.rrt import RRTPlanner
-
+from pyrb.mp.planners.rrt_star import RRTStarPlanner
 
 matplotlib.rc("font", size=16)
 
 world = StaticBoxesWorld()
 world.reset()
 
-planner = RRTPlanner(world, max_nr_vertices=int(1e4))
-
+planner = RRTStarPlanner(world, max_nr_vertices=int(1e2), nearest_radius=0.4)
 q_start = planner.sample_collision_free_config()
 q_goal = planner.sample_collision_free_config()
 path, status = planner.plan(q_start, q_goal)
@@ -32,10 +30,12 @@ for i_parent, indxs_children in planner.edges_parent_to_children.items():
 ax2.scatter(q_start[0], q_start[1], color="green", label="start, $q_I$")
 ax2.scatter(q_goal[0], q_goal[1], color="red", label="goal, $q_G$")
 
+
 if path:
     path = np.array(path)
     ax2.plot(path[:, 0], path[:, 1], color="blue", label="path")
     ax2.scatter(path[:, 0], path[:, 1], color="blue")
+
 
 ax2.add_patch(Circle(q_goal, radius=planner.goal_region_radius, alpha=0.2, color="red"))
 ax2.add_patch(Circle(q_start, radius=0.04, color="green"))

@@ -3,6 +3,10 @@ from collections import defaultdict
 
 from pyrb.mp.base_world import BaseMPWorld
 
+import time
+
+from pyrb.mp.planners.shared import PlanningStatus
+
 
 class RRTPlanner:
 
@@ -18,10 +22,11 @@ class RRTPlanner:
         self.world = world
         self.configuration_limits = self.world.robot.get_joint_limits()
 
-    def plan(self, q_start, q_goal):
+    def plan(self, q_start, q_goal, max_planning_time=np.inf):
         self.add_vertex_to_tree(q_start)
         path = []
-        while not self.is_tree_full():
+        time_s, time_elapsed = self.start_timer()
+        while not self.is_tree_full() and time_elapsed < max_planning_time and len(path) == 0:
             q_free = self.sample_collision_free_config()
             i_vert, q_nearest = self.find_nearest_vertex(q_free)
             _, q_new = self.plan_locally(q_nearest, q_free)
@@ -31,8 +36,13 @@ class RRTPlanner:
                 self.vert_cnt += 1
                 if self.is_vertex_in_goal_region(q_new, q_goal):
                     path = self.find_path(q_start, q_goal)
-                    break
-        return path
+            time_elapsed = time.time() - time_s
+        return path, PlanningStatus(time_taken=time_elapsed, message="Done")
+
+    def start_timer(self):
+        time_s = time.time()
+        time_elapsed = time.time() - time_s
+        return time_s, time_elapsed
 
     def is_vertex_in_goal_region(self, q, q_goal):
         distance = np.linalg.norm(q - q_goal)
@@ -71,6 +81,7 @@ class RRTPlanner:
 
     def insert_vertex_in_tree(self, i, q):
         self.vertices[i, :] = q
+        # TODO: add append?
 
     def create_edge(self, i_parent, i_child):
         self.edges_parent_to_children[i_parent].append(i_child)
@@ -84,14 +95,13 @@ class RRTPlanner:
         # assumes q_src is collision free
         q_delta = q_dst - q_src
         distance = np.linalg.norm(q_delta)
-        max_nr_steps = int(distance / self.min_step_size)
         if distance > self.max_distance_local_planner:
             nr_steps = int(self.max_distance_local_planner / self.min_step_size)
         else:
             nr_steps = int(distance / self.min_step_size)
         q_new, collision_free_transition = None, False
         for i in range(1, nr_steps + 1):
-            alpha = i/max_nr_steps
+            alpha = i/nr_steps
             q = q_dst * alpha + (1-alpha) * q_src
             if self.world.is_collision_free_state(q):
                 q_new = q
