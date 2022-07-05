@@ -1,10 +1,12 @@
 import logging
+from logging import StreamHandler
 import time
+import sys
 
 import numpy as np
 
 from pyrb.mp.planners.rrt import RRTPlanner
-from pyrb.mp.planners.shared import PlanningStatus
+
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -17,11 +19,16 @@ class RRTStarPlanner(RRTPlanner):
         self.cost_to_verts = np.zeros(self.max_nr_vertices)
         self.nearest_radius = nearest_radius
 
+    def clear(self):
+        super().clear()
+        self.cost_to_verts.fill(0)
+
     def get_nearest_vertices_indices(self, q):
         distances = np.linalg.norm(self.vertices[:self.vert_cnt] - q, axis=1)
         return np.where(distances < self.nearest_radius)[0]
 
     def plan(self, q_start, q_goal, max_planning_time=np.inf):
+        self.clear()
         self.add_vertex_to_tree(q_start)
         path = []
         time_s, time_elapsed = self.start_timer()
@@ -29,13 +36,13 @@ class RRTStarPlanner(RRTPlanner):
             q_free = self.sample_collision_free_config()
             i_nearest, q_nearest = self.find_nearest_vertex(q_free)
             local_path = self.local_planner.plan(q_nearest, q_free, q_goal)
-            q_new = local_path[-1] if local_path else None
+            q_new = local_path[-1] if local_path.size > 0 else None
             if q_new is not None:
                 self.rewire(i_nearest, q_new)
                 if self.is_vertex_in_goal_region(q_new, q_goal):
                     path = self.find_path(q_start, q_goal)
             time_elapsed = time.time() - time_s
-        return path, PlanningStatus(time_taken=time_elapsed, message="Done")
+        return path, self.compile_planning_data(path, time_elapsed)
 
     def rewire(self, i_nearest, q_new):
         indxs_qs_nearest_coll_free = self.get_collision_free_nearest_indices(q_new)
@@ -87,3 +94,25 @@ class RRTStarPlanner(RRTPlanner):
         i_childs_parent = self.edges_child_to_parent[i_child]
         childs_parents_childrens = self.edges_parent_to_children[i_childs_parent]
         childs_parents_childrens.remove(i_child)
+
+
+class RRTStarPlannerModified(RRTStarPlanner):
+
+    def plan(self, q_start, q_goal, max_planning_time=np.inf):
+        self.clear()
+        self.add_vertex_to_tree(q_start)
+        path = []
+        time_s, time_elapsed = self.start_timer()
+        while not self.is_tree_full() and time_elapsed < max_planning_time and len(path) == 0:
+            q_free = self.sample_collision_free_config()
+            i_nearest, q_nearest = self.find_nearest_vertex(q_free)
+            local_path = self.local_planner.plan(q_nearest, q_free, q_goal)
+            for q_new in local_path:
+                self.rewire(i_nearest, q_new)
+                if self.is_vertex_in_goal_region(q_new, q_goal):
+                    path = self.find_path(q_start, q_goal)
+                    break
+                i_nearest = self.vert_cnt - 1
+            time_elapsed = time.time() - time_s
+        return path, self.compile_planning_data(path, time_elapsed)
+

@@ -5,7 +5,7 @@ import matplotlib
 import numpy as np
 
 from examples.static_world import StaticBoxesWorld
-from pyrb.mp.planners.rrt import RRTPlanner
+from pyrb.mp.planners.rrt import RRTPlanner, RRTPlannerModified
 
 
 matplotlib.rc("font", size=16)
@@ -13,7 +13,7 @@ matplotlib.rc("font", size=16)
 world = StaticBoxesWorld()
 world.reset()
 
-planner = RRTPlanner(world, max_nr_vertices=int(1e4))
+planner = RRTPlannerModified(world, max_nr_vertices=int(1e4))
 
 q_start = planner.sample_collision_free_config()
 q_goal = planner.sample_collision_free_config()

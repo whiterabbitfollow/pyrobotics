@@ -1,6 +1,11 @@
 
-class PlanningStatus:
+class Status:
+    SUCCESS = "success"
+    FAILURE = "failure"
 
-    def __init__(self, message, time_taken):
-        self.message = message
+
+class PlanningData:
+
+    def __init__(self, status, time_taken):
+        self.status = status
         self.time_taken = time_taken

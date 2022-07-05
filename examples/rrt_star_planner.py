@@ -5,14 +5,18 @@ import matplotlib
 import numpy as np
 
 from examples.static_world import StaticBoxesWorld
-from pyrb.mp.planners.rrt_star import RRTStarPlanner
+from pyrb.mp.planners.rrt_star import RRTStarPlanner, RRTStarPlannerModified, logger
+
+import logging
+
+logger.setLevel(logging.DEBUG)
 
 matplotlib.rc("font", size=16)
 
 world = StaticBoxesWorld()
 world.reset()
 
-planner = RRTStarPlanner(world, max_nr_vertices=int(1e4), nearest_radius=0.4)
+planner = RRTStarPlannerModified(world, max_nr_vertices=int(1e4), nearest_radius=0.4)
 q_start = planner.sample_collision_free_config()
 q_goal = planner.sample_collision_free_config()
 
