@@ -17,12 +17,16 @@ planner = RRTPlanner(world, max_nr_vertices=int(1e4))
 
 q_start = planner.sample_collision_free_config()
 q_goal = planner.sample_collision_free_config()
-path, status = planner.plan(q_start, q_goal)
+path, status = planner.plan(q_start, q_goal, max_planning_time=20)
 
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 10))
 
 world.render_world(ax1)
 world.render_configuration_space(ax2)
+
+vert_cnt = planner.vert_cnt
+verts = planner.vertices
+ax2.scatter(verts[:vert_cnt, 0], verts[:vert_cnt, 1], color="black")
 
 for i_parent, indxs_children in planner.edges_parent_to_children.items():
     for i_child in indxs_children:

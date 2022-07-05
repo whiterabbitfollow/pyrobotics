@@ -28,7 +28,8 @@ class RRTStarPlanner(RRTPlanner):
         while not self.is_tree_full() and time_elapsed < max_planning_time and len(path) == 0:
             q_free = self.sample_collision_free_config()
             i_nearest, q_nearest = self.find_nearest_vertex(q_free)
-            _, q_new = self.plan_locally(q_nearest, q_free)
+            local_path = self.local_planner.plan(q_nearest, q_free, q_goal)
+            q_new = local_path[-1] if local_path else None
             if q_new is not None:
                 self.rewire(i_nearest, q_new)
                 if self.is_vertex_in_goal_region(q_new, q_goal):
@@ -52,7 +53,7 @@ class RRTStarPlanner(RRTPlanner):
         collision_free_neighs = []
         for indx_q_nearest in indxs_qs_nearest:
             q_nearest = self.vertices[indx_q_nearest]
-            coll_free, _ = self.plan_locally(q_src=q_nearest, q_dst=q_new)
+            coll_free = self.local_planner.is_transition_coll_free(q_src=q_nearest, q_dst=q_new)
             collision_free_neighs.append(coll_free)
         return indxs_qs_nearest[collision_free_neighs]
 
