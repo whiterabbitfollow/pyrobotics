@@ -1,49 +1,46 @@
-import matplotlib.pyplot as plt
-import matplotlib
-
 from examples.moving.moving_world import MovingBoxWorld
+from pyrb.mp.planners.moving.rrt import RRTPlannerTimeVarying
 
-matplotlib.rc("font", size=16)
+import numpy as np
+import matplotlib.pyplot as plt
 
 world = MovingBoxWorld()
 world.reset()
-#
-# planner = RRTPlannerModified(world, max_nr_vertices=int(1e4))
-#
-# q_start = planner.sample_collision_free_config()
-# q_goal = planner.sample_collision_free_config()
-# path, status = planner.plan(q_start, q_goal, max_planning_time=20)
+planner = RRTPlannerTimeVarying(world, time_horizon=30, max_actuation=0.1)
+state_start = np.append(world.start_config, 0)
+config_goal = world.goal_config
+path, status = planner.plan(state_start=state_start, config_goal=config_goal)
 
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 10))
+world.reset()
 
+assert path.size > 0, "No solution found"
 
+for i, state in enumerate(path):
+    config = state[:-1]
+    t = state[-1]
+    print(world.is_collision_free_state(state))
+    world.robot.set_config(config)
+    world.set_time(t)
+    world.render_world(ax1)
+    sub_path = path[:i, :-1]
+    world.render_configuration_space(ax2, path=sub_path)
+    curr_verts = (planner.vertices[:, -1] - t) == 0
+
+    if curr_verts.any():
+        ax2.scatter(planner.vertices[curr_verts, 0], planner.vertices[curr_verts, 1])
+
+    plt.pause(0.1)
+    ax1.cla()
+    ax2.cla()
+
+state = path[-1]
+config = state[:-1]
+t = state[-1]
+
+world.robot.set_config(config)
 world.render_world(ax1)
-world.render_configuration_space(ax2)
-
-
-# vert_cnt = planner.vert_cnt
-# verts = planner.vertices
-# ax2.scatter(verts[:vert_cnt, 0], verts[:vert_cnt, 1], color="black")
-#
-# for i_parent, indxs_children in planner.edges_parent_to_children.items():
-#     for i_child in indxs_children:
-#         q = np.stack([planner.vertices[i_parent], planner.vertices[i_child]], axis=0)
-#         ax2.plot(q[:, 0], q[:, 1], color="black")
-#
-# ax2.scatter(q_start[0], q_start[1], color="green", label="start, $q_I$")
-# ax2.scatter(q_goal[0], q_goal[1], color="red", label="goal, $q_G$")
-#
-# if path:
-#     path = np.array(path)
-#     ax2.plot(path[:, 0], path[:, 1], color="blue", label="path")
-#     ax2.scatter(path[:, 0], path[:, 1], color="blue")
-#
-# ax2.add_patch(Circle(q_goal, radius=planner.goal_region_radius, alpha=0.2, color="red"))
-# ax2.add_patch(Circle(q_start, radius=0.04, color="green"))
-#
-# ax2.legend(loc="best")
-# ax2.set_title("Sampling based motion planning")
-# ax2.set_xlabel(r"$\theta_1$")
-# ax2.set_ylabel(r"$\theta_2$")
-
+world.render_configuration_space(ax2, path=path)
+world.set_time(t)
 plt.show()
+
