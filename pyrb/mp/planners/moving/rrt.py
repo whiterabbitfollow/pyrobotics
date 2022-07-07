@@ -204,6 +204,7 @@ if __name__ == "__main__":
     world.reset()
 
     if path.size:
+
         for i, state in enumerate(path):
             config = state[:-1]
             t = state[-1]
@@ -213,6 +214,11 @@ if __name__ == "__main__":
             world.render_world(ax1)
             sub_path = path[:i, :-1]
             world.render_configuration_space(ax2, path=sub_path)
+            curr_verts = (planner.vertices[:, -1] - t) == 0
+
+            if curr_verts.any():
+                ax2.scatter(planner.vertices[curr_verts, 0], planner.vertices[curr_verts, 1])
+
             plt.pause(0.1)
             ax1.cla()
             ax2.cla()
