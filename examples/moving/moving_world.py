@@ -1,34 +1,13 @@
-from dataclasses import dataclass
 
 import trimesh
 from matplotlib.collections import PatchCollection
 from matplotlib.patches import Rectangle, Circle
 import numpy as np
 
-
 import pyrb
-from pyrb.mp.base_world import BaseMPWorld
+from pyrb.mp.base_world import BaseMPWorld, WorldData2D, BaseMPTimeVaryingWorld
 from pyrb.rendering.utils import robot_configuration_to_matplotlib_rectangles
-from pyrb.robot import Manipulator
-
-
-@dataclass
-class Range:
-    lower: float
-    upper: float
-
-    def to_tuple(self):
-        return self.lower, self.upper
-
-
-@dataclass
-class WorldData:
-    x: Range
-    y: Range
-
-    def __init__(self, xs, ys):
-        self.x = Range(*xs)
-        self.y = Range(*ys)
+from examples.moving.actors.agents import Manipulator2DOF
 
 
 class StaticBoxObstacle:
@@ -66,7 +45,7 @@ class MovingBoxObstacle:
 class BoxesObstacles:
 
     def __init__(self, world_data, obstacle_free_region=None):
-        self.world_data: WorldData = world_data
+        self.world_data: WorldData2D = world_data
         self.static_obstacle = [
             StaticBoxObstacle([-0.1, 0.45], 0.1, 0.3, 2 * np.pi/3)
         ]
@@ -88,50 +67,11 @@ class BoxesObstacles:
 
 
 
-class MovingBoxWorld(BaseMPWorld):
+class MovingBoxWorld(BaseMPTimeVaryingWorld):
 
     def __init__(self):
-        joint_limits = [
-            [-2 * np.pi / 3, 2 * np.pi / 3],
-            [-np.pi + np.pi / 4, 0]
-        ]
-        robot_data = {
-            "links": [
-                {
-                    "geometry": {
-                        "width": 0.3,
-                        "height": 0.1,
-                        "depth": 0.1,
-                        "direction": 0
-                    }
-                },
-                {
-                    "geometry": {
-                        "width": 0.3,
-                        "height": 0.1,
-                        "depth": 0.1,
-                        "direction": 0
-                    }
-                }
-            ],
-            "joints": [
-                {
-                    "position": np.array([0.0, 0.0, 0.0]),
-                    "rotation": np.array([0.0, 0.0, 1.0]),
-                    "limits": joint_limits[0]
-                },
-                {
-                    "position": np.array([0.3, 0.0, 0.0]),
-                    "rotation": np.array([0.0, 0.0, 1.0]),
-                    "limits": joint_limits[1]
-                }
-            ],
-            "end_effector": {
-                "position": np.array([0.3, 0.0, 0.0])
-            }
-        }
-        data = WorldData((-1, 1), (-1, 1))
-        robot = Manipulator(robot_data)
+        data = WorldData2D((-1, 1), (-1, 1))
+        robot = Manipulator2DOF()
         obstacles = BoxesObstacles(data)
         super().__init__(robot=robot, data=data, obstacles=obstacles)
 
@@ -140,23 +80,6 @@ class MovingBoxWorld(BaseMPWorld):
         self.goal_config = np.array([-np.pi / 2 + np.pi / 10, -np.pi / 10])
         self.robot.set_config(self.start_config)
 
-    def is_collision_free_transition(self, state_src, state_dst, nr_coll_steps=10):
-        is_collision_free = False
-        for i in range(1, nr_coll_steps + 1):
-            alpha = i / nr_coll_steps
-            state = state_dst * alpha + (1 - alpha) * state_src
-            is_collision_free = self.is_collision_free_state(state)
-            if not is_collision_free:
-                break
-        return is_collision_free
-
-    def is_collision_free_state(self, state) -> bool:
-        config = state[:-1]
-        t = state[-1]
-        self.set_time(t)
-        self.robot.set_config(config)
-        return not self.robot.collision_manager.in_collision_other(self.obstacles.collision_manager)
-
     def view(self):
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
         self.render_world(ax1)
@@ -164,20 +87,6 @@ class MovingBoxWorld(BaseMPWorld):
         plt.show()
 
     def render_world(self, ax):
-        rectangles = []
-        config = self.robot.config.copy()
-
-        self.robot.set_config(self.goal_config)
-        rectangles_params = robot_configuration_to_matplotlib_rectangles(self.robot)
-        rectangles.clear()
-        for rectangles_param in rectangles_params:
-            rectangles.append(Rectangle(*rectangles_param))
-        coll = PatchCollection(rectangles)
-        coll.set_color("blue")
-        coll.set_alpha(0.1)
-        ax.add_collection(coll)
-
-        rectangles.clear()
         self.robot.set_config(config)
         rectangles_params = robot_configuration_to_matplotlib_rectangles(self.robot)
         for rectangles_param in rectangles_params:
@@ -228,9 +137,6 @@ class MovingBoxWorld(BaseMPWorld):
         ax.set_xlim(joint_limits[0, 0], joint_limits[0, 1])
         ax.set_ylim(joint_limits[1, 0], joint_limits[1, 1])
         ax.legend(loc="best")
-
-    def set_time(self, t):
-        self.obstacles.set_time(t)
 
 
 if __name__ == "__main__":
