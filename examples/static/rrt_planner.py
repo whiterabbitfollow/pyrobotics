@@ -5,7 +5,7 @@ import matplotlib
 import numpy as np
 
 from examples.static.static_world import StaticBoxesWorld
-from pyrb.mp.planners.rrt import RRTPlannerModified
+from pyrb.mp.planners.static.rrt import RRTPlannerModified
 
 
 matplotlib.rc("font", size=16)

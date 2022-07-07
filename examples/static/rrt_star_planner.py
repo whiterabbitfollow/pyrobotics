@@ -5,7 +5,7 @@ import matplotlib
 import numpy as np
 
 from examples.static.static_world import StaticBoxesWorld
-from pyrb.mp.planners.rrt_star import RRTStarPlannerModified, logger
+from pyrb.mp.planners.static.rrt_star import RRTStarPlannerModified, logger
 
 import logging
 
