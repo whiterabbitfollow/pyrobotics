@@ -1,3 +1,4 @@
+import logging
 import time
 
 import numpy as np
@@ -20,11 +21,13 @@ class LocalPlanner:
         self.min_step_size = min_step_size
         self.world = world
 
-    def plan(self, state_src, state_dst, state_global_goal):
+    def plan(self, state_src, state_dst, state_global_goal, full_plan=False):
         # assumes state_src is collision free
         state_delta = state_dst - state_src
         distance = np.linalg.norm(state_delta)
-        nr_steps = int(min(distance, self.max_distance) / self.min_step_size)
+        if not full_plan:
+            distance = min(distance, self.max_distance)
+        nr_steps = int(distance / self.min_step_size)
         path, collision_free_transition = np.array([]), False
         state_closest = None
         for i in range(1, nr_steps + 1):
@@ -40,28 +43,19 @@ class LocalPlanner:
             min_transition_distance = 0.2
             distance = np.linalg.norm(state_closest - state_src)
             nr_steps = int(distance/min_transition_distance)
-            path = np.linspace(state_src, state_closest, nr_steps) if nr_steps > 1 else np.vstack([state_src, state_closest])
-            path = path[1:, :]
+            if nr_steps > 1:
+                path = np.linspace(state_src, state_closest, nr_steps)
+            else:
+                path = np.vstack([state_src, state_closest])
+            path = path[1:, :]  # Don't include first...
         return path
-
-    def is_transition_coll_free(self, state_src, state_dst):
-        state_delta = state_dst - state_src
-        distance = np.linalg.norm(state_delta)
-        nr_steps = int(distance / self.min_step_size)
-        collision_free_transition = False
-        for i in range(1, nr_steps + 1):
-            alpha = i / nr_steps
-            state = state_dst * alpha + (1 - alpha) * state_src
-            collision_free_transition = self.world.is_collision_free_state(state)
-            if not collision_free_transition:
-                break
-        return collision_free_transition
 
 
 class RRTPlanner:
 
     def __init__(self, world: BaseMPWorld, max_nr_vertices=int(1e4), max_distance_local_planner=0.5):
         self.max_nr_vertices = max_nr_vertices
+        self.state_goal = None
         self.edges_parent_to_children = defaultdict(list)
         self.vertices = np.zeros((max_nr_vertices, world.robot.nr_joints))
         self.edges_child_to_parent = np.zeros((max_nr_vertices,), dtype=int)
@@ -85,6 +79,7 @@ class RRTPlanner:
 
     def plan(self, state_start, state_goal, max_planning_time=np.inf):
         self.clear()
+        self.state_goal = state_goal
         self.add_vertex_to_tree(state_start)
         path = []
         time_s, time_elapsed = self.start_timer()
@@ -95,8 +90,8 @@ class RRTPlanner:
             state_new = local_path[-1] if local_path else None
             if state_new is not None:
                 self.append_vertex(state_new, i_parent=i_nearest)
-                if is_vertex_in_goal_region(state_new, state_goal, self.goal_region_radius):
-                    path = self.find_path(state_start, state_goal)
+                if self.is_vertex_in_goal_region(state_new):
+                    path = self.find_path(state_start)
             time_elapsed = time.time() - time_s
         return path, self.compile_planning_data(path, time_elapsed)
 
@@ -105,27 +100,31 @@ class RRTPlanner:
         time_elapsed = time.time() - time_s
         return time_s, time_elapsed
 
-    def is_vertex_in_goal_region(self, state, state_goal):
-        distance = np.linalg.norm(state - state_goal)
+    def is_vertex_in_goal_region(self, state):
+        distance = np.linalg.norm(state - self.state_goal)
         return distance < self.goal_region_radius
 
     def is_tree_full(self):
         return self.vert_cnt >= self.max_nr_vertices
 
-    def find_path(self, state_start, state_goal):
-        distances = np.linalg.norm(state_goal - self.vertices[:self.vert_cnt], axis=1)
+    def find_path(self, state_start):
+        distances = np.linalg.norm(self.state_goal - self.vertices[:self.vert_cnt], axis=1)
         mask_vertices_goal = distances < self.goal_region_radius
         if mask_vertices_goal.any():
-            i = mask_vertices_goal.nonzero()[0]
+            i = mask_vertices_goal.nonzero()[0][0]
             state = self.vertices[i, :]
-            path = [state]
+            indxs = [i]
             while (state != state_start).any():
                 i = self.edges_child_to_parent[i]
                 state = self.vertices[i, :]
-                path.append(state)
-            path.reverse()
+                if i in indxs:
+                    logging.error("Loop in path")
+                    break
+                indxs.append(i)
+            indxs.reverse()
+            path = self.vertices[indxs]
         else:
-            path = []
+            path = np.array([]).reshape((-1,) + state_start.shape)
         return path
 
     def sample_collision_free_config(self):
@@ -156,28 +155,29 @@ class RRTPlanner:
         self.vert_cnt += 1
 
     def compile_planning_data(self, path, time_elapsed):
-        status = Status.SUCCESS if path else Status.FAILURE
-        return PlanningData(status=status, time_taken=time_elapsed)
+        status = Status.SUCCESS if path.size else Status.FAILURE
+        return PlanningData(status=status, time_taken=time_elapsed, nr_verts=self.vert_cnt)
 
 
 class RRTPlannerModified(RRTPlanner):
 
     def plan(self, state_start, state_goal, max_planning_time=np.inf):
         self.add_vertex_to_tree(state_start)
-        path = []
+        self.state_goal = state_goal
+        path = np.array([]).reshape((-1,) + state_start.shape)
         time_s, time_elapsed = self.start_timer()
-        while not self.is_tree_full() and time_elapsed < max_planning_time and len(path) == 0:
+        while not self.is_tree_full() and time_elapsed < max_planning_time and path.size == 0:
             state_free = self.sample_collision_free_config()
             i_nearest, state_nearest = self.find_nearest_vertex(state_free)
-            local_path = self.local_planner.plan(state_nearest, state_free, state_goal)
+            local_path = self.local_planner.plan(state_nearest, state_free, self.state_goal)
             i_prev = i_nearest
             for state in local_path:
                 self.insert_vertex_in_tree(self.vert_cnt, state)
                 self.create_edge(i_parent=i_prev, i_child=self.vert_cnt)
                 i_prev = self.vert_cnt
                 self.vert_cnt += 1
-                if is_vertex_in_goal_region(state, state_goal, self.goal_region_radius):
-                    path = self.find_path(state_start, state_goal)
+                if self.is_vertex_in_goal_region(state):
+                    path = self.find_path(state_start)
                     break
             time_elapsed = time.time() - time_s
         return path, self.compile_planning_data(path, time_elapsed)

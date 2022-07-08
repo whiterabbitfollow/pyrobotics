@@ -8,12 +8,17 @@ from examples.static.static_world import StaticBoxesWorld
 from pyrb.mp.planners.static.rrt_star import RRTStarPlannerModified, logger
 
 import logging
+import sys
 
 logger.setLevel(logging.DEBUG)
+logger.addHandler(logging.StreamHandler(sys.stdout))
+
 
 matplotlib.rc("font", size=16)
 
 world = StaticBoxesWorld()
+
+# np.random.seed(1)
 world.reset()
 
 planner = RRTStarPlannerModified(world, max_nr_vertices=int(1e4), nearest_radius=0.4)
@@ -21,9 +26,11 @@ q_start = planner.sample_collision_free_config()
 q_goal = planner.sample_collision_free_config()
 
 path, status = planner.plan(q_start, q_goal, max_planning_time=20)
+print(status.time_taken)
 
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 10))
 
+world.robot.set_config(q_start)
 world.render_world(ax1)
 world.render_configuration_space(ax2)
 
@@ -40,7 +47,7 @@ vert_cnt = planner.vert_cnt
 verts = planner.vertices
 ax2.scatter(verts[:vert_cnt, 0], verts[:vert_cnt, 1], color="black")
 
-if path:
+if path.size:
     path = np.array(path)
     ax2.plot(path[:, 0], path[:, 1], color="blue", label="path")
     ax2.scatter(path[:, 0], path[:, 1], color="blue")

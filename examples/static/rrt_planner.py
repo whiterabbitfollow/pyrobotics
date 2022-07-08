@@ -36,8 +36,8 @@ for i_parent, indxs_children in planner.edges_parent_to_children.items():
 ax2.scatter(q_start[0], q_start[1], color="green", label="start, $q_I$")
 ax2.scatter(q_goal[0], q_goal[1], color="red", label="goal, $q_G$")
 
-if path:
-    path = np.array(path)
+if path.size > 0:
+    print(path)
     ax2.plot(path[:, 0], path[:, 1], color="blue", label="path")
     ax2.scatter(path[:, 0], path[:, 1], color="blue")
 
