@@ -5,8 +5,8 @@ from matplotlib.patches import Rectangle, Circle
 import numpy as np
 
 import pyrb
-from pyrb.mp.base_world import BaseMPWorld, WorldData2D, BaseMPTimeVaryingWorld
-from pyrb.rendering.utils import robot_configuration_to_matplotlib_rectangles
+from examples.utils import render_manipulator_on_axis
+from pyrb.mp.base_world import WorldData2D, BaseMPTimeVaryingWorld
 from examples.moving.actors.agents import Manipulator2DOF
 
 
@@ -66,7 +66,6 @@ class BoxesObstacles:
             self.collision_manager.set_transform(name=f"moving_box_{i}", transform=obs.transform)
 
 
-
 class MovingBoxWorld(BaseMPTimeVaryingWorld):
 
     def __init__(self):
@@ -77,7 +76,7 @@ class MovingBoxWorld(BaseMPTimeVaryingWorld):
 
     def reset(self):
         self.start_config = np.array([np.pi / 2 - np.pi / 10, -np.pi / 10])
-        self.goal_config = np.array([-np.pi / 2 + np.pi / 10, -np.pi / 10])
+        self.robot.set_goal_state(np.array([-np.pi / 2 + np.pi / 10, -np.pi / 10]))
         self.robot.set_config(self.start_config)
 
     def view(self):
@@ -87,15 +86,16 @@ class MovingBoxWorld(BaseMPTimeVaryingWorld):
         plt.show()
 
     def render_world(self, ax):
-        self.robot.set_config(config)
-        rectangles_params = robot_configuration_to_matplotlib_rectangles(self.robot)
-        for rectangles_param in rectangles_params:
-            rectangles.append(Rectangle(*rectangles_param))
-        coll = PatchCollection(rectangles)
-        coll.set_color("blue")
-        coll.set_edgecolor("black")
-        ax.add_collection(coll)
+        curr_config = self.robot.config.copy()
+        goal_config = self.robot.goal_state
 
+        self.robot.set_config(goal_config)
+        color = "blue"
+        render_manipulator_on_axis(ax, self.robot, color=color, alpha=0.1)
+
+        self.robot.set_config(curr_config)
+        color = "blue"
+        render_manipulator_on_axis(ax, self.robot, color=color)
         for angle_rad, link in zip(self.robot.config, self.robot.links):
             xy = link.frame[:2, 3]
             ax.scatter(xy[0], xy[1], color="black")
@@ -105,6 +105,7 @@ class MovingBoxWorld(BaseMPTimeVaryingWorld):
             p_local = np.array([-obs.width / 2, -obs.height / 2, 0])
             p_global = pyrb.kin.SE3_mul(obs.transform, p_local)
             static_obstacles.append(Rectangle(tuple(p_global)[:2], obs.width, obs.height, angle=np.rad2deg(obs.angle)))
+
         ax.add_collection(PatchCollection(static_obstacles, color="green"))
 
         ax.set_xlim(*self.data.x.to_tuple())
@@ -126,9 +127,9 @@ class MovingBoxWorld(BaseMPTimeVaryingWorld):
         collision_mask = np.array(collision_mask).reshape(100, 100)
         ax.pcolormesh(theta_grid_1, theta_grid_2, collision_mask)
         ax.scatter(self.start_config[0], self.start_config[1], label="Config")
-        ax.add_patch(Circle(tuple(self.goal_config), radius=0.1, color="red", alpha=0.1))
-        ax.scatter(self.goal_config[0], self.goal_config[1], label="Goal config")
-        if path is not None:
+        ax.add_patch(Circle(tuple(self.robot.goal_state), radius=0.1, color="red", alpha=0.1))
+        ax.scatter(self.robot.goal_state[0], self.robot.goal_state[1], label="Goal config")
+        if path is not None and path.size > 0:
             ax.plot(path[:, 0], path[:, 1], ls="-", marker=".", label="path")
         ax.set_title("Configuration space, $\mathcal{C}$")
         ax.set_xlabel(r"$\theta_1$")
@@ -145,8 +146,6 @@ if __name__ == "__main__":
     world = MovingBoxWorld()
     world.reset()
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 10))
-    # fig, ax1 = plt.subplots(1, 1, figsize=(20, 10))
-
     for t in range(100):
         world.reset()
         world.render_world(ax1)

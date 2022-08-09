@@ -62,7 +62,7 @@ class RRTStarPlanner(RRTPlanner):
             path = self.local_planner.plan(
                 state_src=state_nearest,
                 state_dst=state_new,
-                state_global_goal=self.state_goal,
+                state_global_goal=None,
                 full_plan=True
             )
             # path_len = path.shape[0]

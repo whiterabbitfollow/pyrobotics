@@ -1,4 +1,5 @@
 import numpy as np
+from matplotlib.patches import Circle
 
 from examples.moving.actors.adversary import Mobile2DOFAdversaryManipulator
 from examples.moving.actors.agents import Manipulator2DOF
@@ -17,17 +18,14 @@ class AgentAdversary2DWorld(BaseMPTimeVaryingWorld):
     def render_world(self, ax):
         curr_config = self.robot.config.copy()
         goal_config = self.robot.goal_state
+
         self.robot.set_config(goal_config)
+        render_manipulator_on_axis(ax, self.robot, color="blue", alpha=0.1)
 
-        color = "blue"
-        render_manipulator_on_axis(ax, self.robot, color=color)
         self.robot.set_config(curr_config)
-        color = "blue"
-        render_manipulator_on_axis(ax, self.robot, color=color, alpha=0.1)
+        render_manipulator_on_axis(ax, self.robot, color="blue")
 
-        color = "green"
-        render_manipulator_on_axis(ax, self.obstacles, color=color)
-
+        render_manipulator_on_axis(ax, self.obstacles, color="green")
         ax.set_xlim(*self.data.x.to_tuple())
         ax.set_ylim(*self.data.y.to_tuple())
         ax.get_xaxis().set_ticks([])
@@ -38,16 +36,86 @@ class AgentAdversary2DWorld(BaseMPTimeVaryingWorld):
         goal_state = self.sample_collision_free_state()
         self.robot.set_goal_state(goal_state)
 
-        start_state = self.sample_collision_free_state()
-        self.robot.set_config(start_state)
+        self.start_config = self.sample_collision_free_state()
+        self.robot.set_config(self.start_config)
 
+    def render_configuration_space(self, ax, path=None):
+        thetas_raw = np.linspace(-np.pi, np.pi, 100)
+        theta_grid_1, theta_grid_2 = np.meshgrid(thetas_raw, thetas_raw)
+        thetas = np.stack([theta_grid_1.ravel(), theta_grid_2.ravel()], axis=1)
+        collision_mask = []
+        for theta in thetas:
+            self.robot.set_config(theta)
+            collision = self.robot.collision_manager.in_collision_other(self.obstacles.collision_manager)
+            collision_mask.append(not collision)
+        collision_mask = np.array(collision_mask).reshape(100, 100)
+        ax.pcolormesh(theta_grid_1, theta_grid_2, collision_mask)
+        ax.scatter(self.start_config[0], self.start_config[1], label="Config")
+        ax.add_patch(Circle(tuple(self.robot.goal_state), radius=0.1, color="red", alpha=0.1))
+        ax.scatter(self.robot.goal_state[0], self.robot.goal_state[1], label="Goal config")
+        if path is not None:
+            ax.plot(path[:, 0], path[:, 1], ls="-", marker=".", label="path")
+        ax.set_title("Configuration space, $\mathcal{C}$")
+        ax.set_xlabel(r"$\theta_1$")
+        ax.set_ylabel(r"$\theta_2$")
+        joint_limits = self.robot.joint_limits
+        ax.set_xlim(joint_limits[0, 0], joint_limits[0, 1])
+        ax.set_ylim(joint_limits[1, 0], joint_limits[1, 1])
+        ax.legend(loc="best")
 
 
 if __name__ == "__main__":
-    import matplotlib.pyplot as plt
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
+    from pyrb.mp.planners.moving.rrt import ModifiedRRTPlannerTimeVarying
+    from pyrb.mp.planners.moving.rrt_star import RRTStarPlannerTimeVarying
+
+    import time
+    np.random.seed(14)  # Challenging
     world = AgentAdversary2DWorld()
     world.reset()
-    world.render_world(ax1)
-    plt.show()
+    # world.render_world(ax1)
+    # plt.show()
+    planner = RRTStarPlannerTimeVarying(
+        world,
+        time_horizon=300,
+        local_planner_nr_coll_steps=2,
+        local_planner_max_distance=np.inf,
+        max_nr_vertices=int(1e5)
+    )
 
+    start_config = np.append(world.robot.config, 0)
+    goal_config = world.robot.goal_state
+    path, status = planner.plan(start_config, goal_config, max_planning_time=60)
+    print(status.status, status.time_taken, status.nr_verts)
+
+    import matplotlib.pyplot as plt
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 10))
+    if path.size:
+        for i, state in enumerate(path):
+            config = state[:-1]
+            t = state[-1]
+            world.robot.set_config(config)
+            world.set_time(t)
+            world.render_world(ax1)
+            sub_path = path[:i, :-1]
+            world.render_configuration_space(ax2, path=sub_path)
+            curr_verts = (planner.vertices[:, -1] - t) == 0
+            if curr_verts.any():
+                ax2.scatter(planner.vertices[curr_verts, 0], planner.vertices[curr_verts, 1])
+            fig.suptitle(f"Time {t}")
+            plt.pause(0.1)
+            ax1.cla()
+            ax2.cla()
+
+    # else:
+    #     for t in range(0, 200):
+    #         world.robot.set_config(world.start_config)
+    #         world.set_time(t)
+    #         world.render_world(ax1)
+    #         world.render_configuration_space(ax2)
+    #         curr_verts = (planner.vertices[:, -1] - t) == 0
+    #         if curr_verts.any():
+    #             ax2.scatter(planner.vertices[curr_verts, 0], planner.vertices[curr_verts, 1])
+    #         plt.pause(0.1)
+    #         ax1.cla()
+    #         ax2.cla()
+    #         fig.suptitle(f"Time {t}")

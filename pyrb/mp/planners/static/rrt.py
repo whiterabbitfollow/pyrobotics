@@ -21,7 +21,7 @@ class LocalPlanner:
         self.min_step_size = min_step_size
         self.world = world
 
-    def plan(self, state_src, state_dst, state_global_goal, full_plan=False):
+    def plan(self, state_src, state_dst, state_global_goal=None, full_plan=False):
         # assumes state_src is collision free
         state_delta = state_dst - state_src
         distance = np.linalg.norm(state_delta)
@@ -34,13 +34,17 @@ class LocalPlanner:
             alpha = i / nr_steps
             state = state_dst * alpha + (1 - alpha) * state_src
             collision_free_transition = self.world.is_collision_free_state(state)
-            is_in_global_goal = is_vertex_in_goal_region(state, state_global_goal, self.global_goal_region_radius)
+            is_in_global_goal = state_global_goal is not None and is_vertex_in_goal_region(
+                    state,
+                    state_global_goal,
+                    self.global_goal_region_radius
+                )
             if collision_free_transition:
                 state_closest = state
             if is_in_global_goal or not collision_free_transition:
                 break
         if state_closest is not None:
-            min_transition_distance = 0.2
+            min_transition_distance = 0.2   # TODO: make configurable...
             distance = np.linalg.norm(state_closest - state_src)
             nr_steps = int(distance/min_transition_distance)
             if nr_steps > 1:
