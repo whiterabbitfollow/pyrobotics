@@ -117,11 +117,15 @@ class RRTPlannerTimeVarying:
         self.edges_parent_to_children.clear()
         self.vert_cnt = 0
 
-    def plan(self, state_start, config_goal, max_planning_time=np.inf):
+    def plan(self, state_start, config_goal, max_planning_time=np.inf, min_planning_time=0):
         self.add_vertex_to_tree(state_start)
-        path = np.array([]).reshape((0, state_start.size))
         time_s, time_elapsed = self.start_timer()
-        while not self.is_tree_full() and time_elapsed < max_planning_time and path.size == 0:
+        found_solution = False
+        while (
+                not self.is_tree_full() and
+                time_elapsed < max_planning_time and
+                not found_solution
+        ) or time_elapsed < min_planning_time:
             state_free = self.sample_collision_free_config()
             i_nearest, state_nearest = self.find_nearest_vertex(state_free)
             if i_nearest is None:
@@ -133,10 +137,17 @@ class RRTPlannerTimeVarying:
                 self.append_vertex(state_new, i_parent=i_parent)
                 config_new = state_new[:-1]
                 if is_vertex_in_goal_region(config_new, config_goal, self.goal_region_radius):
-                    path = self.find_path(state_start, config_goal)
+                    found_solution = True
+                    if time_elapsed < min_planning_time:
+                        self.time_horizon = state_new[-1]
+                        print(
+                            f"Found solution with time horizon {self.time_horizon}."
+                            f" Min planning time left {min_planning_time}"
+                        )
                     break
                 i_parent = i_child
             time_elapsed = time.time() - time_s
+        path = self.find_path(state_start, config_goal)
         return path, self.compile_planning_data(path, time_elapsed, self.vert_cnt)
 
     def start_timer(self):
@@ -151,6 +162,7 @@ class RRTPlannerTimeVarying:
         distances = np.linalg.norm(config_goal - self.vertices[:self.vert_cnt, :-1], axis=1)
         mask_vertices_goal = distances < self.goal_region_radius
         if mask_vertices_goal.any():
+            print("Have goal vertices")
             times = self.vertices[:self.vert_cnt:, -1][mask_vertices_goal]
             i_min_time_sub = np.argmin(times)
             min_time = np.min(times)
@@ -165,6 +177,7 @@ class RRTPlannerTimeVarying:
             path.reverse()
             path = np.vstack(path)
         else:
+            print("No goal vertices..")
             path = np.array([]).reshape((0, state_start.size))
         return path
 
@@ -230,12 +243,16 @@ class ModifiedRRTPlannerTimeVarying(RRTPlannerTimeVarying):
             else:
                 break
 
-    def plan(self, state_start, config_goal, max_planning_time=np.inf):
+    def plan(self, state_start, config_goal, max_planning_time=np.inf, min_planning_time=0):
         self.add_vertex_to_tree(state_start)
         self.init_graph_with_all_start_config(state_start)
-        path = np.array([])
         time_s, time_elapsed = self.start_timer()
-        while not self.is_tree_full() and time_elapsed < max_planning_time and len(path) == 0:
+        found_solution = False
+        while (
+                not self.is_tree_full() and
+                time_elapsed < max_planning_time and
+                not found_solution
+        ) or time_elapsed < min_planning_time:
             state_free = self.sample_collision_free_config()
             i_nearest, state_nearest = self.find_nearest_vertex(state_free)
             if i_nearest is None:
@@ -247,8 +264,15 @@ class ModifiedRRTPlannerTimeVarying(RRTPlannerTimeVarying):
                 self.append_vertex(state_new, i_parent=i_parent)
                 config_new = state_new[:-1]
                 if is_vertex_in_goal_region(config_new, config_goal, self.goal_region_radius):
-                    path = self.find_path(state_start, config_goal)
+                    found_solution = True
+                    if time_elapsed < min_planning_time:
+                        self.time_horizon = state_new[-1]
+                        print(
+                            f"Found solution with time horizon {self.time_horizon}."
+                            f" Min planning time left {min_planning_time - time_elapsed}"
+                        )
                     break
                 i_parent = i_child
             time_elapsed = time.time() - time_s
+        path = self.find_path(state_start, config_goal)
         return path, self.compile_planning_data(path, time_elapsed, self.vert_cnt)

@@ -65,8 +65,8 @@ class AgentAdversary2DWorld(BaseMPTimeVaryingWorld):
 
 
 if __name__ == "__main__":
-    # from pyrb.mp.planners.moving.rrt import RRTPlannerTimeVarying, ModifiedRRTPlannerTimeVarying
-    from pyrb.mp.planners.moving.rrt_star import RRTStarPlannerTimeVarying
+    from pyrb.mp.planners.moving.rrt import RRTPlannerTimeVarying, ModifiedRRTPlannerTimeVarying
+    # from pyrb.mp.planners.moving.rrt_star import RRTStarPlannerTimeVarying
     import time
     np.random.seed(14)  # Challenging, solvable with ~200 steps...
     world = AgentAdversary2DWorld()
@@ -75,16 +75,18 @@ if __name__ == "__main__":
     # world.render_world(ax1)
     # plt.show()
 
-    planner = RRTStarPlannerTimeVarying(
+    planner = ModifiedRRTPlannerTimeVarying(
         world,
         time_horizon=300,
         local_planner_nr_coll_steps=2,
         local_planner_max_distance=np.inf,
         max_nr_vertices=int(1e5)
     )
+
     start_config = np.append(world.robot.config, 0)
     goal_config = world.robot.goal_state
-    path, status = planner.plan(start_config, goal_config, max_planning_time=180)
+    path, status = planner.plan(start_config, goal_config, max_planning_time=180, min_planning_time=20)
+
     # print(goal_config)
     # import matplotlib.pyplot as plt
     # import trimesh
