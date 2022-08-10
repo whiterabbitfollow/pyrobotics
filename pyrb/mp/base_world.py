@@ -86,3 +86,12 @@ class WorldData2D:
     def __init__(self, xs, ys):
         self.x = Range(*xs)
         self.y = Range(*ys)
+
+
+
+@dataclass
+class WorldData1D:
+    x: Range
+
+    def __init__(self, xs, ys):
+        self.x = Range(*xs)

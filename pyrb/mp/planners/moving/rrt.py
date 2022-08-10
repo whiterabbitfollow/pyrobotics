@@ -54,6 +54,9 @@ class LocalPlanner:
                 config_global_goal,
                 self.global_goal_region_radius
             )
+            if np.abs(config_delta).sum() == 0:
+                # TODO: tmp hack.... NEEDS TO BE FIXED!!!
+                break
             if collision_free_transition:
                 state_prev = state_nxt
                 path[cnt, :] = state_nxt
@@ -116,9 +119,9 @@ class RRTPlannerTimeVarying:
 
     def plan(self, state_start, config_goal, max_planning_time=np.inf):
         self.add_vertex_to_tree(state_start)
-        path = np.array([])
+        path = np.array([]).reshape((0, state_start.size))
         time_s, time_elapsed = self.start_timer()
-        while not self.is_tree_full() and time_elapsed < max_planning_time and len(path) == 0:
+        while not self.is_tree_full() and time_elapsed < max_planning_time and path.size == 0:
             state_free = self.sample_collision_free_config()
             i_nearest, state_nearest = self.find_nearest_vertex(state_free)
             if i_nearest is None:
@@ -148,8 +151,12 @@ class RRTPlannerTimeVarying:
         distances = np.linalg.norm(config_goal - self.vertices[:self.vert_cnt, :-1], axis=1)
         mask_vertices_goal = distances < self.goal_region_radius
         if mask_vertices_goal.any():
-            i = mask_vertices_goal.nonzero()[0][0]
+            times = self.vertices[:self.vert_cnt:, -1][mask_vertices_goal]
+            i_min_time_sub = np.argmin(times)
+            min_time = np.min(times)
+            i = np.nonzero(mask_vertices_goal)[0][i_min_time_sub]
             state = self.vertices[i, :]
+            assert state[-1] == min_time, "Time not correct..."
             path = [state]
             while (state != state_start).any():
                 i = self.edges_child_to_parent[i]

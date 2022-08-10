@@ -65,15 +65,16 @@ class AgentAdversary2DWorld(BaseMPTimeVaryingWorld):
 
 
 if __name__ == "__main__":
-    from pyrb.mp.planners.moving.rrt import ModifiedRRTPlannerTimeVarying
+    # from pyrb.mp.planners.moving.rrt import RRTPlannerTimeVarying, ModifiedRRTPlannerTimeVarying
     from pyrb.mp.planners.moving.rrt_star import RRTStarPlannerTimeVarying
-
     import time
-    np.random.seed(14)  # Challenging
+    np.random.seed(14)  # Challenging, solvable with ~200 steps...
     world = AgentAdversary2DWorld()
     world.reset()
+
     # world.render_world(ax1)
     # plt.show()
+
     planner = RRTStarPlannerTimeVarying(
         world,
         time_horizon=300,
@@ -81,12 +82,36 @@ if __name__ == "__main__":
         local_planner_max_distance=np.inf,
         max_nr_vertices=int(1e5)
     )
-
     start_config = np.append(world.robot.config, 0)
     goal_config = world.robot.goal_state
-    path, status = planner.plan(start_config, goal_config, max_planning_time=60)
+    path, status = planner.plan(start_config, goal_config, max_planning_time=180)
+    # print(goal_config)
+    # import matplotlib.pyplot as plt
+    # import trimesh
+    # import pyrb
+    # mesh = trimesh.creation.cylinder(0.1, height=planner.time_horizon)
+    # offset = np.append(goal_config, planner.time_horizon/2)
+    # mesh.apply_transform(pyrb.kin.rot_trans_to_SE3(p=offset))
+    # fig = plt.figure()
+    # ax = fig.add_subplot(111, projection='3d')
+    # i = planner.vert_cnt
+    #
+    # # ax.scatter(planner.vertices[:i, 0], planner.vertices[:i, 1], planner.vertices[:i, 2])
+    #
+    # for i_parent, indxs_children in planner.edges_parent_to_children.items():
+    #     for i_child in indxs_children:
+    #         q = np.stack([planner.vertices[i_parent], planner.vertices[i_child]], axis=0)
+    #         ax.plot(q[:, 0], q[:, 1], q[:, 2], ls="-", marker=".", color="black")
+    # ax.plot_trisurf(
+    #     mesh.vertices[:, 0],
+    #     mesh.vertices[:, 1],
+    #     triangles=mesh.faces,
+    #     Z=mesh.vertices[:, 2],
+    #     color="red",
+    #     alpha=0.1
+    # )
+    # plt.show()
     print(status.status, status.time_taken, status.nr_verts)
-
     import matplotlib.pyplot as plt
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 10))
     if path.size:
@@ -98,7 +123,7 @@ if __name__ == "__main__":
             world.render_world(ax1)
             sub_path = path[:i, :-1]
             world.render_configuration_space(ax2, path=sub_path)
-            curr_verts = (planner.vertices[:, -1] - t) == 0
+            curr_verts = planner.vertices[:, -1] == t
             if curr_verts.any():
                 ax2.scatter(planner.vertices[curr_verts, 0], planner.vertices[curr_verts, 1])
             fig.suptitle(f"Time {t}")
@@ -106,16 +131,16 @@ if __name__ == "__main__":
             ax1.cla()
             ax2.cla()
 
-    # else:
-    #     for t in range(0, 200):
-    #         world.robot.set_config(world.start_config)
-    #         world.set_time(t)
-    #         world.render_world(ax1)
-    #         world.render_configuration_space(ax2)
-    #         curr_verts = (planner.vertices[:, -1] - t) == 0
-    #         if curr_verts.any():
-    #             ax2.scatter(planner.vertices[curr_verts, 0], planner.vertices[curr_verts, 1])
-    #         plt.pause(0.1)
-    #         ax1.cla()
-    #         ax2.cla()
-    #         fig.suptitle(f"Time {t}")
+    else:
+        for t in range(150, 200):
+            world.robot.set_config(world.start_config)
+            world.set_time(t)
+            world.render_world(ax1)
+            world.render_configuration_space(ax2)
+            curr_verts = (planner.vertices[:, -1] - t) == 0
+            if curr_verts.any():
+                ax2.scatter(planner.vertices[curr_verts, 0], planner.vertices[curr_verts, 1])
+            plt.pause(0.1)
+            ax1.cla()
+            ax2.cla()
+            fig.suptitle(f"Time {t}")

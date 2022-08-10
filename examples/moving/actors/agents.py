@@ -48,3 +48,33 @@ class Manipulator2DOF(MotionPlanningAgentActuated):
             }
         }
         super().__init__(robot_data=robot_data, max_actuation=max_actuation)
+
+
+class Manipulator1DOF(MotionPlanningAgentActuated):
+
+    def __init__(self):
+        max_actuation = 0.1
+        robot_data = {
+            "links": [
+                {
+                    "geometry": {
+                        "width": 0.3,
+                        "height": 0.1,
+                        "depth": 0.1,
+                        "direction": 0
+                    }
+                }
+            ],
+            "joints": [
+                {
+                    "position": np.array([0.0, 0.0, 0.0]),
+                    "rotation": np.array([0.0, 0.0, 1.0]),
+                    "limits": [-np.pi/2, np.pi/2]
+                },
+            ],
+            "end_effector": {
+                "position": np.array([0.3, 0.0, 0.0])
+            }
+        }
+        super().__init__(robot_data=robot_data, max_actuation=max_actuation)
+
