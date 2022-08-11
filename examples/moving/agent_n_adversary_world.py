@@ -38,6 +38,9 @@ class AgentAdversary2DWorld(BaseMPTimeVaryingWorld):
 
     def reset(self):
         self.obstacles.reset()
+        self.reset_config()
+
+    def reset_config(self):
         goal_state = self.sample_collision_free_state()
         self.robot.set_goal_state(goal_state)
 

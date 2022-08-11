@@ -141,6 +141,9 @@ class Manipulator(pyrb.kin.SerialKinematicChain):
         transforms = self.forward(values)
         self.update_geometries(transforms)
 
+    def get_config(self):
+        return self.config
+
     def update_geometries(self, transforms):
         # update frames better name...
         for link, transform, angle in zip(self.links, transforms, self.config):
