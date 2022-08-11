@@ -6,9 +6,8 @@ from matplotlib.patches import Circle
 from examples.moving.actors.adversary import Mobile2DOFAdversaryManipulator
 from examples.utils import render_manipulator_on_axis
 from examples.data.manipulators import DATA_MANIPULATOR_2DOF
-
-from pyrb.mp.base_world import BaseMPTimeVaryingWorld, WorldData2D
 from pyrb.mp.base_agent import MotionPlanningAgentActuated
+from pyrb.mp.base_world import BaseMPTimeVaryingWorld, WorldData2D
 
 
 class AgentAdversary2DWorld(BaseMPTimeVaryingWorld):
@@ -85,6 +84,7 @@ if __name__ == "__main__":
 
     planner = ModifiedRRTPlannerTimeVarying(
         world,
+        time_horizon=300,
         local_planner_nr_coll_steps=2,
         local_planner_max_distance=np.inf,
         max_nr_vertices=int(1e5)

@@ -10,6 +10,7 @@ from pyrb.mp.planners.shared import PlanningData, Status
 
 logger = logging.Logger(__name__)
 
+
 def is_vertex_in_goal_region(q, q_goal, goal_region_radius):
     distance = np.linalg.norm(q - q_goal)
     return distance < goal_region_radius
@@ -249,7 +250,7 @@ class ModifiedRRTPlannerTimeVarying(RRTPlannerTimeVarying):
 
     def test_naive_solution(self, state_start, config_goal, nr_coll_steps, goal_region_radius):
         state_prev = state_start
-        path = []
+        path = [state_start]
         while True:
             config_prev = state_prev[:-1]
             t_prev = state_prev[-1]
