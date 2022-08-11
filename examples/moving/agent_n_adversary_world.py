@@ -9,10 +9,10 @@ from pyrb.mp.base_world import BaseMPTimeVaryingWorld, WorldData2D
 
 class AgentAdversary2DWorld(BaseMPTimeVaryingWorld):
 
-    def __init__(self):
+    def __init__(self, robot=None, obstacles=None):
         data = WorldData2D((-1, 1), (-1, 1))
-        robot = Manipulator2DOF()
-        obstacles = Mobile2DOFAdversaryManipulator()
+        robot = robot or Manipulator2DOF()
+        obstacles = obstacles or Mobile2DOFAdversaryManipulator()
         super().__init__(robot=robot, data=data, obstacles=obstacles)
 
     def render_world(self, ax):
