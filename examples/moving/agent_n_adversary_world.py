@@ -1,17 +1,22 @@
+import copy
+
 import numpy as np
 from matplotlib.patches import Circle
 
 from examples.moving.actors.adversary import Mobile2DOFAdversaryManipulator
-from examples.moving.actors.agents import Manipulator2DOF
 from examples.utils import render_manipulator_on_axis
+from examples.data.manipulators import DATA_MANIPULATOR_2DOF
+
 from pyrb.mp.base_world import BaseMPTimeVaryingWorld, WorldData2D
+from pyrb.mp.base_agent import MotionPlanningAgentActuated
 
 
 class AgentAdversary2DWorld(BaseMPTimeVaryingWorld):
 
     def __init__(self, robot=None, obstacles=None):
         data = WorldData2D((-1, 1), (-1, 1))
-        robot = robot or Manipulator2DOF()
+        robot_data = copy.deepcopy(DATA_MANIPULATOR_2DOF)
+        robot = robot or MotionPlanningAgentActuated(robot_data, max_actuation=0.1)
         obstacles = obstacles or Mobile2DOFAdversaryManipulator()
         super().__init__(robot=robot, data=data, obstacles=obstacles)
 
@@ -77,7 +82,6 @@ if __name__ == "__main__":
 
     planner = ModifiedRRTPlannerTimeVarying(
         world,
-        time_horizon=300,
         local_planner_nr_coll_steps=2,
         local_planner_max_distance=np.inf,
         max_nr_vertices=int(1e5)

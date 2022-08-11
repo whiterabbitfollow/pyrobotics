@@ -30,9 +30,8 @@ world.reset()
 #     max_nr_vertices=int(1e5)
 # )
 
-planner = RRTStarPlannerTimeVarying(
+planner = RRTPlannerTimeVarying(
     world,
-    time_horizon=TIME_HORIZON,
     local_planner_nr_coll_steps=10,
     local_planner_max_distance=np.inf,
     max_nr_vertices=int(1e5)

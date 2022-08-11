@@ -1,8 +1,10 @@
 import pyrb
 import numpy as np
 import trimesh
-
 import time
+import copy
+
+from examples.data.manipulators import DATA_MANIPULATOR_2DOF, DATA_MANIPULATOR_3DOF
 
 
 class MovingRobotAdversary(pyrb.robot.Manipulator):
@@ -177,108 +179,27 @@ class Mobile2DOFAdversaryManipulator(MobileMovingRobotAdversary):
             [0, 2 * np.pi],
             [0, 2 * np.pi]
         ])
-        robot_data = {
-            "links": [
-                {
-                    "geometry": {
-                        "width": 0.3,
-                        "height": 0.1,
-                        "depth": 0.1,
-                        "direction": 0
-                    }
-                },
-                {
-                    "geometry": {
-                        "width": 0.3,
-                        "height": 0.1,
-                        "depth": 0.1,
-                        "direction": 0
-                    }
-                }
-            ],
-            "joints": [
-                {
-                    "position": np.array([0.0, 0.0, 0.0]),
-                    "rotation": np.array([0.0, 0.0, 1.0]),
-                    "limits": joint_limits[2]
-                },
-                {
-                    "position": np.array([0.3, 0.0, 0.0]),
-                    "rotation": np.array([0.0, 0.0, 1.0]),
-                    "limits": joint_limits[3]
-                }
-            ],
-            "end_effector": {
-                "position": np.array([0.3, 0.0, 0.0])
-            }
-        }
+        robot_data = copy.deepcopy(DATA_MANIPULATOR_2DOF)
+        robot_data["joints"][0]["limits"] = joint_limits[2]
+        robot_data["joints"][1]["limits"] = joint_limits[3]
         super().__init__(base_nr_dof=2, robot_data=robot_data)
-        self.joint_limits = joint_limits
+        self.joint_limits = joint_limits    # TODO: very buggy... needs to be set in order for sampling of config to work...
 
 
 class Mobile3DOFAdversaryManipulator(MobileMovingRobotAdversary):
 
     def __init__(self):
-        self.joint_limits = np.array([
-            [-.5, .5],
-            [-.5, .5],
+        joint_limits = np.array([
+            [-.3, .3],
+            [-.3, .3],
             [-.5, .5],
             [0, 2 * np.pi],
             [0, 2 * np.pi],
             [0, 2 * np.pi]
         ])
-        robot_data = {
-            "links": [
-                {
-                    "geometry": None
-                },
-                {
-                    "geometry": {
-                        "width": 0.1,
-                        "height": 0.1,
-                        "depth": 0.5,
-                        "direction": 2
-                    }
-                },
-                {
-                    "geometry": {
-                        "width": 0.1,
-                        "height": 0.1,
-                        "depth": 0.5,
-                        "direction": 2
-                    }
-                }
-            ],
-            "joints": [
-                {
-                    "position": np.array([0.0, 0.0, 0.0]),
-                    "rotation": np.array([0.0, 0.0, 1.0]),
-                    "limits": self.joint_limits[3]
-                },
-                {
-                    "position": np.array([0.0, 0.0, 0.0]),
-                    "rotation": np.array([0.0, 1.0, 0.0]),
-                    "limits": self.joint_limits[4]
-                },
-                {
-                    "position": np.array([0.0, 0.0, 0.5]),
-                    "rotation": np.array([0.0, 1.0, 0.0]),
-                    "limits": self.joint_limits[5]
-                }
-            ],
-            "end_effector": {
-                "position": np.array([0.0, 0.0, 0.5])
-            }
-        }
+        robot_data = copy.deepcopy(DATA_MANIPULATOR_3DOF)
+        robot_data["joints"][0]["limits"] = joint_limits[3]
+        robot_data["joints"][1]["limits"] = joint_limits[4]
+        robot_data["joints"][2]["limits"] = joint_limits[5]
         super().__init__(base_nr_dof=3, robot_data=robot_data)
-        # TODO: buggy, must be set afterwards
-        self.joint_limits = np.array([
-            [-.3, .3],
-            [-.3, .3],
-            [-.5, .5],
-            [0, 2 * np.pi],
-            [0, 2 * np.pi],
-            [0, 2 * np.pi]
-        ])
-
-
+        self.joint_limits = joint_limits    # TODO: very buggy... needs to be set in order for sampling of config to work...

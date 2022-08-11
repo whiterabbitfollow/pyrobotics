@@ -1,3 +1,4 @@
+import copy
 
 import trimesh
 from matplotlib.collections import PatchCollection
@@ -5,9 +6,10 @@ from matplotlib.patches import Rectangle, Circle
 import numpy as np
 
 import pyrb
+from examples.data.manipulators import DATA_MANIPULATOR_2DOF, DATA_MANIPULATOR_1DOF
 from examples.utils import render_manipulator_on_axis
+from pyrb.mp.base_agent import MotionPlanningAgentActuated
 from pyrb.mp.base_world import WorldData2D, BaseMPTimeVaryingWorld
-from examples.moving.actors.agents import Manipulator2DOF, Manipulator1DOF
 
 
 class StaticBoxObstacle:
@@ -69,7 +71,8 @@ class MovingBox1DimWorld(BaseMPTimeVaryingWorld):
 
     def __init__(self):
         data = WorldData2D((-1, 1), (-1, 1))
-        robot = Manipulator1DOF()
+        robot_data = copy.deepcopy(DATA_MANIPULATOR_1DOF)
+        robot = MotionPlanningAgentActuated(robot_data, max_actuation=0.1)
         obstacles = BoxesObstacles(
             world_data=data,
             moving_obstacles=[MovingBoxObstacle(
@@ -132,7 +135,8 @@ class MovingBoxWorld(BaseMPTimeVaryingWorld):
 
     def __init__(self):
         data = WorldData2D((-1, 1), (-1, 1))
-        robot = Manipulator2DOF()
+        robot_data = copy.deepcopy(DATA_MANIPULATOR_2DOF)
+        robot = MotionPlanningAgentActuated(robot_data, max_actuation=0.1)
         obstacles = BoxesObstacles(
             world_data=data,
             static_obstacles=[StaticBoxObstacle([-0.1, 0.45], 0.1, 0.3, 2 * np.pi/3)],
