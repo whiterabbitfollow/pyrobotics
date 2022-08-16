@@ -27,8 +27,9 @@ class MovingRobotAdversary(pyrb.robot.Manipulator):
         else:
             self.traj = np.array([])
         self.joint_limits = self.get_joint_limits()
-        cylinder_radii = 0.1
-        self.invalid_region_mesh = trimesh.creation.cylinder(cylinder_radii, height=0.1)
+        # cylinder_radii = 0.1
+        # self.invalid_region_mesh = trimesh.creation.cylinder(cylinder_radii, height=0.1)
+        self.invalid_region_mesh = trimesh.creation.box(extents=(0.1, 1.0, 0.1))
 
     def set_time(self, time_step):
         self.time_step = int(self.truncate_time_step(time_step))
@@ -88,7 +89,12 @@ class MovingRobotAdversary(pyrb.robot.Manipulator):
         while True:
             pose_next = self.sample_valid_pose()
             velocity_next = np.random.uniform(0, 2 * np.pi, nr_joints)
-            segment_poses = self.create_segment_between_via_points(pose_start, velocity_start, pose_next, velocity_next)
+            segment_poses = self.create_segment_between_via_points(
+                pose_start,
+                velocity_start,
+                pose_next,
+                velocity_next
+            )
             if segment_poses is not None:
                 if nr_via_points != 1:
                     segment_poses = segment_poses[1:, :]
@@ -174,7 +180,7 @@ class Mobile2DOFAdversaryManipulator(MobileMovingRobotAdversary):
 
     def __init__(self):
         joint_limits = np.array([
-            [0, .4],
+            [0.1, .4],
             [-.4, .4],
             [0, 2 * np.pi],
             [0, 2 * np.pi]
