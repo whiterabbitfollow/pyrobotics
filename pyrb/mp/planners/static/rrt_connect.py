@@ -93,6 +93,7 @@ class RRTConnectPlanner:
             status, state_new_a = self.local_planner.plan(state_nearest_a, state_free)      # , state_goal)
             if status == LocalPlannerStatus.TRAPPED:
                 time_elapsed = time.time() - time_s
+                tree_a, tree_b = self.swap_trees(tree_a, tree_b)
                 continue
             i_state_new_a = tree_a.vert_cnt
             tree_a.append_vertex(state_new_a, i_parent=i_nearest_a)
