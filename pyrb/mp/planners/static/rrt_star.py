@@ -1,23 +1,56 @@
 import logging
 import time
+from collections import defaultdict
 
 import numpy as np
 
-from pyrb.mp.planners.static.rrt import RRTPlanner
+from pyrb.mp.base_world import BaseMPWorld
+from pyrb.mp.planners.shared import Status, PlanningData
+from pyrb.mp.planners.static.rrt import LocalPlanner
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-class RRTStarPlanner(RRTPlanner):
+class RRTStarPlanner:
 
-    def __init__(self, *args, nearest_radius=.2, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, world: BaseMPWorld, max_nr_vertices=int(1e4), max_distance_local_planner=0.5, nearest_radius=.2):
+        self.max_nr_vertices = max_nr_vertices
+        self.max_nr_vertices = max_nr_vertices
+        self.state_goal = None
+        self.edges_parent_to_children = defaultdict(list)
+        self.vertices = np.zeros((max_nr_vertices, world.robot.nr_joints))
+        self.edges_child_to_parent = np.zeros((max_nr_vertices,), dtype=int)
+        self.max_distance_local_planner = max_distance_local_planner
+        self.vert_cnt = 0
+        self.goal_region_radius = 1e-1
+        self.world = world
+        self.configuration_limits = self.world.robot.get_joint_limits()
+        self.local_planner = LocalPlanner(
+            self.world,
+            min_step_size=0.01,
+            max_distance=max_distance_local_planner,
+            global_goal_region_radius=self.goal_region_radius
+        )
         self.cost_to_verts = np.zeros(self.max_nr_vertices)
         self.nearest_radius = nearest_radius
 
+    def start_timer(self):
+        time_s = time.time()
+        time_elapsed = time.time() - time_s
+        return time_s, time_elapsed
+
+    def is_vertex_in_goal_region(self, state):
+        distance = np.linalg.norm(state - self.state_goal)
+        return distance < self.goal_region_radius
+
+    def is_tree_full(self):
+        return self.vert_cnt >= self.max_nr_vertices
     def clear(self):
-        super().clear()
+        self.vertices.fill(0)
+        self.edges_child_to_parent.fill(0)
+        self.edges_parent_to_children.clear()
+        self.vert_cnt = 0
         self.cost_to_verts.fill(0)
 
     def get_nearest_vertices_indices(self, state):
@@ -42,6 +75,57 @@ class RRTStarPlanner(RRTPlanner):
                     path = self.find_path(state_start)
             time_elapsed = time.time() - time_s
         return path, self.compile_planning_data(path, time_elapsed)
+
+    def find_path(self, state_start):
+        distances = np.linalg.norm(self.state_goal - self.vertices[:self.vert_cnt], axis=1)
+        mask_vertices_goal = distances < self.goal_region_radius
+        if mask_vertices_goal.any():
+            i = mask_vertices_goal.nonzero()[0][0]
+            state = self.vertices[i, :]
+            indxs = [i]
+            while (state != state_start).any():
+                i = self.edges_child_to_parent[i]
+                state = self.vertices[i, :]
+                if i in indxs:
+                    logging.error("Loop in path")
+                    break
+                indxs.append(i)
+            indxs.reverse()
+            path = self.vertices[indxs]
+        else:
+            path = np.array([]).reshape((-1,) + state_start.shape)
+        return path
+
+    def sample_collision_free_config(self):
+        while True:
+            state = np.random.uniform(self.configuration_limits[:, 0], self.configuration_limits[:, 1])
+            if self.world.is_collision_free_state(state):
+                return state
+
+    def find_nearest_vertex(self, state):
+        distance = np.linalg.norm(self.vertices[:self.vert_cnt] - state, axis=1)
+        i_vert = np.argmin(distance)
+        return i_vert, self.vertices[i_vert]
+
+    def insert_vertex_in_tree(self, i, state):
+        self.vertices[i, :] = state
+
+    def append_vertex(self, state, i_parent):
+        self.vertices[self.vert_cnt, :] = state
+        self.create_edge(i_parent, self.vert_cnt)
+        self.vert_cnt += 1
+
+    def create_edge(self, i_parent, i_child):
+        self.edges_parent_to_children[i_parent].append(i_child)
+        self.edges_child_to_parent[i_child] = i_parent
+
+    def add_vertex_to_tree(self, state):
+        self.vertices[self.vert_cnt, :] = state
+        self.vert_cnt += 1
+
+    def compile_planning_data(self, path, time_elapsed):
+        status = Status.SUCCESS if path.size else Status.FAILURE
+        return PlanningData(status=status, time_taken=time_elapsed, nr_verts=self.vert_cnt)
 
     def rewire(self, i_nearest, state_new):
         indxs_states_nearest_coll_free = self.get_collision_free_nearest_indices(state_new)
