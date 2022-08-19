@@ -53,7 +53,7 @@ class RRTStarPlanner:
         while not self.tree.is_full() and time_elapsed < max_planning_time and path.size == 0:
             state_free = self.sample_collision_free_config()
             i_nearest, state_nearest = self.tree.find_nearest_vertex(state_free)
-            local_path = self.local_planner.plan(state_nearest, state_free, self.state_goal)
+            _, local_path = self.local_planner.plan(state_nearest, state_free, self.state_goal)
             state_new = local_path[-1] if local_path.size > 0 else None
             if state_new is not None:
                 self.tree.rewire_nearest(i_nearest, state_new)
@@ -94,7 +94,7 @@ class RRTStarPlannerModified(RRTStarPlanner):
         while not self.tree.is_full() and time_elapsed < max_planning_time and len(path) == 0:
             state_free = self.sample_collision_free_config()
             i_nearest, state_nearest = self.tree.find_nearest_vertex(state_free)
-            local_path = self.local_planner.plan(state_nearest, state_free, state_goal)
+            _, local_path = self.local_planner.plan(state_nearest, state_free, state_goal)
             for state_new in local_path:
                 self.tree.rewire_nearest(i_nearest, state_new)
                 if is_vertex_in_goal_region(state_new, state_goal, self.goal_region_radius):

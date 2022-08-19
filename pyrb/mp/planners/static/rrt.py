@@ -36,7 +36,7 @@ class RRTPlanner:
         while not self.tree.is_full() and time_elapsed < max_planning_time and len(path) == 0:
             state_free = self.sample_collision_free_config()
             i_nearest, state_nearest = self.tree.find_nearest_vertex(state_free)
-            local_path = self.local_planner.plan(state_nearest, state_free, state_goal)
+            _, local_path = self.local_planner.plan(state_nearest, state_free, state_goal)
             state_new = local_path[-1] if local_path.size > 0 else None
             if state_new is not None:
                 self.tree.append_vertex(state_new, i_parent=i_nearest)
@@ -75,7 +75,7 @@ class RRTPlannerModified(RRTPlanner):
         while not self.tree.is_full() and time_elapsed < max_planning_time and path.size == 0:
             state_free = self.sample_collision_free_config()
             i_nearest, state_nearest = self.tree.find_nearest_vertex(state_free)
-            local_path = self.local_planner.plan(state_nearest, state_free, self.state_goal)
+            _, local_path = self.local_planner.plan(state_nearest, state_free, self.state_goal)
             i_prev = i_nearest
             for state in local_path:
                 i_current = self.tree.vert_cnt
