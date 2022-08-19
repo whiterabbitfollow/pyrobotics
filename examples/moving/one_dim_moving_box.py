@@ -1,7 +1,5 @@
 from examples.moving.moving_world import MovingBox1DimWorld
-from pyrb.mp.planners.moving.rrt import RRTPlannerTimeVarying, ModifiedRRTPlannerTimeVarying
-from pyrb.mp.planners.moving.rrt_star import RRTStarPlannerTimeVarying
-import time
+from pyrb.mp.planners.moving.time_optimal.rrt import RRTPlannerTimeVarying
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle

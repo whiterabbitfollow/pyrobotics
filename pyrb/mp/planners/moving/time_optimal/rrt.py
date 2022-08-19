@@ -5,7 +5,7 @@ import numpy as np
 
 from pyrb.mp.base_world import BaseMPTimeVaryingWorld
 from pyrb.mp.planners.moving.local_planners import LocalPlanner
-from pyrb.mp.planners.moving.tree import TreeForwardTime
+from pyrb.mp.planners.moving.time_optimal.tree import TreeForwardTime
 from pyrb.mp.utils.utils import is_vertex_in_goal_region, start_timer, compile_planning_data
 
 logger = logging.Logger(__name__)

@@ -4,7 +4,7 @@ from enum import Enum, auto
 import numpy as np
 
 from pyrb.mp.utils.utils import is_vertex_in_goal_region
-from pyrb.mp.planners.static.local_planners import LocalRRTConnectPlannerStatus
+from pyrb.mp.planners.static.local_planners import LocalPlannerStatus
 
 
 class LocalPlanner:
@@ -146,11 +146,11 @@ class LocalPlannerRRTConnect:
                 is_passed_time_horizon = t_nxt <= t_dst
 
         if collision_free_transition and has_reached_dst:
-            status = LocalRRTConnectPlannerStatus.REACHED
+            status = LocalPlannerStatus.REACHED
         elif collision_free_transition and not has_reached_dst:
-            status = LocalRRTConnectPlannerStatus.ADVANCED
+            status = LocalPlannerStatus.ADVANCED
         else:
-            status = LocalRRTConnectPlannerStatus.TRAPPED
+            status = LocalPlannerStatus.TRAPPED
         path = np.vstack(path) if path else np.array([]).reshape((0, state_dst.size))
         return status, path
 

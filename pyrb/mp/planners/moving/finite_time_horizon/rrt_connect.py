@@ -4,7 +4,7 @@ import logging
 import numpy as np
 
 from pyrb.mp.base_world import BaseMPTimeVaryingWorld
-from pyrb.mp.planners.moving.tree import TreeForwardTime, TreeBackwardTime
+from pyrb.mp.planners.moving.time_optimal.tree import TreeForwardTime, TreeBackwardTime
 from pyrb.mp.utils.utils import start_timer
 from pyrb.mp.planners.moving.local_planners import LocalPlannerRRTConnect
 from pyrb.mp.planners.static.local_planners import LocalPlannerStatus

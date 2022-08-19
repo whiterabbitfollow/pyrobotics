@@ -57,6 +57,13 @@ class Tree:
             path.append(state)
         return np.vstack(path)
 
+    def find_path_indices_to_root_from_vertex_index(self, i_vert):
+        path_indices = [i_vert]
+        while i_vert:
+            i_vert = self.get_vertex_parent_index(i_vert)
+            path_indices.append(i_vert)
+        return path_indices
+
 
 class TreeRewire(Tree):
 
@@ -82,7 +89,7 @@ class TreeRewire(Tree):
         indxs_states_nearest_mask = []
         for indx_state_nearest in indxs_states_nearest:
             state_nearest = self.vertices[indx_state_nearest].ravel()
-            path = self.local_planner.plan(
+            status, path = self.local_planner.plan(
                 state_src=state_nearest,
                 state_dst=state_new,
                 state_global_goal=None,

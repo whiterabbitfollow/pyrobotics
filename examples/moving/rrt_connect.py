@@ -1,7 +1,7 @@
 from matplotlib.patches import Rectangle
 
 from examples.moving.moving_world import MovingBox1DimWorld
-from pyrb.mp.planners.moving.rrt_connect import RRTConnectPlannerTimeVarying
+from pyrb.mp.planners.moving.finite_time_horizon.rrt_connect import RRTConnectPlannerTimeVarying
 import numpy as np
 import matplotlib.pyplot as plt
 
