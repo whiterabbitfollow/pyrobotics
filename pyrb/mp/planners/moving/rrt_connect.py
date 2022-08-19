@@ -5,9 +5,9 @@ import numpy as np
 
 from pyrb.mp.base_world import BaseMPTimeVaryingWorld
 from pyrb.mp.planners.moving.tree import TreeForwardTime, TreeBackwardTime
-from pyrb.mp.utils.utils import PlanningData, Status, start_timer
+from pyrb.mp.utils.utils import start_timer
 from pyrb.mp.planners.moving.local_planners import LocalPlannerRRTConnect
-from pyrb.mp.planners.static.local_planners import LocalRRTConnectPlannerStatus
+from pyrb.mp.planners.static.local_planners import LocalPlannerStatus
 
 logger = logging.Logger(__name__)
 
@@ -84,7 +84,7 @@ class RRTConnectPlannerTimeVarying:
             state_free,
             time_mode=tree_a.time_mode
         )
-        if status == LocalRRTConnectPlannerStatus.TRAPPED:
+        if status == LocalPlannerStatus.TRAPPED:
             return path
 
         self.ingest_path_in_tree(tree_a, local_path, i_nearest_a)
@@ -100,7 +100,7 @@ class RRTConnectPlannerTimeVarying:
             time_mode=tree_b.time_mode
         )
 
-        if status == LocalRRTConnectPlannerStatus.REACHED:
+        if status == LocalPlannerStatus.REACHED:
             self.ingest_path_in_tree(tree_b, local_path, i_nearest_b)
             i_state_new_b = tree_b.vert_cnt - 1
             i_state_start, i_state_goal = self.sort_indices(tree_a, i_state_new_a, i_state_new_b)
@@ -143,7 +143,3 @@ class RRTConnectPlannerTimeVarying:
             state = np.append(config, t)
             if self.world.is_collision_free_state(state):
                 return state
-
-    def compile_planning_data(self, path, time_elapsed, nr_verts):
-        status = Status.SUCCESS if path.size else Status.FAILURE
-        return PlanningData(status=status, time_taken=time_elapsed, nr_verts=nr_verts)
