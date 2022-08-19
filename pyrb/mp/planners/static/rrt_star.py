@@ -68,9 +68,9 @@ class RRTStarPlanner:
         distances = np.linalg.norm(self.state_goal - vertices, axis=1)
         mask_vertices_goal = distances < self.goal_region_radius
         if mask_vertices_goal.any():
-            i = mask_vertices_goal.nonzero()[0][0]
-            # TODO: pick the one with smallest cost...
-            path = self.tree.find_path_to_root_from_vertex_index(i)
+            indices = mask_vertices_goal.nonzero()[0]
+            i_min_cost = indices[np.argmin(self.tree.cost_to_verts[indices])]
+            path = self.tree.find_path_to_root_from_vertex_index(i_min_cost)
             path = path[::-1]
         else:
             path = np.array([]).reshape((-1,) + state_start.shape)
