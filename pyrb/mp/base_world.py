@@ -45,6 +45,7 @@ class BaseMPWorld(metaclass=ABCMeta):
 class BaseMPTimeVaryingWorld(BaseMPWorld):
 
     def __init__(self, data, robot: MotionPlanningAgentActuated, obstacles):
+        self.t = 0
         super().__init__(data, robot, obstacles)
 
     def sample_collision_free_state(self):
@@ -60,6 +61,7 @@ class BaseMPTimeVaryingWorld(BaseMPWorld):
         return super().is_collision_free_state(config)
 
     def set_time(self, t):
+        self.t = t
         self.obstacles.set_time(t)
 
     def reset(self):

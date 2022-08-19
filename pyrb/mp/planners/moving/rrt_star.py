@@ -24,13 +24,20 @@ class RRTStarPlannerTimeVarying(RRTPlannerTimeVarying):
         self.cost_to_verts.fill(0)
         self.ingested_vertices.clear()
 
-    def plan(self, state_start, config_goal, max_planning_time=np.inf):
+    def plan(
+            self,
+            state_start,
+            config_goal,
+            max_planning_time=np.inf,
+            min_planning_time=0,
+            time_horizon=300
+    ):
         self.state_goal = config_goal
         self.add_vertex_to_tree(state_start)
         time_s, time_elapsed = self.start_timer()
         while not self.is_tree_full() and time_elapsed < max_planning_time:
             # TODO: Need some better stopping criteria, that is configurable
-            state_free = self.sample_collision_free_config()
+            state_free = self.sample_collision_free_config(time_horizon)
             i_nearest, state_nearest = self.find_nearest_vertex(state_free)
             local_path = self.local_planner.plan(state_nearest, state_free, config_goal)
             if local_path.size:
@@ -47,10 +54,10 @@ class RRTStarPlannerTimeVarying(RRTPlannerTimeVarying):
                 distance = np.linalg.norm(ingested_configs - config_goal, axis=1)
                 in_goal = distance < self.goal_region_radius
                 if in_goal.any():
-                    self.time_horizon = ingested_times[in_goal].min()
+                    time_horizon = min(time_horizon, ingested_times[in_goal].min())
                     print(
                         f"Found solution, "
-                        f"time horizon: {self.time_horizon}, "
+                        f"time horizon: {time_horizon}, "
                         f"planning time left: {max_planning_time - time_elapsed}"
                     )
             time_elapsed = time.time() - time_s

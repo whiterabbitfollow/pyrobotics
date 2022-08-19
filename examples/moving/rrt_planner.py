@@ -11,14 +11,17 @@ time_horizon = 60
 planner = RRTPlannerTimeVarying(
     world,
     local_planner_max_distance=1.0,
-    local_planner_nr_coll_steps=2,
-    time_horizon=time_horizon
+    local_planner_nr_coll_steps=2
 )
 
 
 state_start = np.append(world.start_config, 0)
 config_goal = world.robot.goal_state
-path, status = planner.plan(state_start=state_start, config_goal=config_goal)
+path, status = planner.plan(
+    state_start=state_start,
+    config_goal=config_goal,
+    time_horizon=time_horizon
+)
 
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 10))
 world.reset()

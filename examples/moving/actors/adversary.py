@@ -29,8 +29,7 @@ class MovingRobotAdversary(pyrb.robot.Manipulator):
         self.joint_limits = self.get_joint_limits()
         # cylinder_radii = 0.1
         # self.invalid_region_mesh = trimesh.creation.cylinder(cylinder_radii, height=0.1)
-        self.invalid_region_mesh = trimesh.creation.box(extents=(0.1, 1.0, 0.1))
-
+        self.invalid_region_mesh = trimesh.creation.box(extents=(0.2, 1.0, 0.2))
     def set_time(self, time_step):
         self.time_step = int(self.truncate_time_step(time_step))
         self.decimal_part = time_step - int(time_step)

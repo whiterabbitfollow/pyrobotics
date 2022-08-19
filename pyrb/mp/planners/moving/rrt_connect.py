@@ -5,9 +5,9 @@ import math
 import numpy as np
 
 from pyrb.mp.base_world import BaseMPTimeVaryingWorld
-from pyrb.mp.planners.shared import PlanningData, Status
+from pyrb.mp.planners.utils import PlanningData, Status
 from pyrb.mp.planners.static.rrt import Tree
-from pyrb.mp.planners.static.rrt_connect import LocalPlannerStatus
+from pyrb.mp.planners.static.local_planners import LocalPlannerRRTConnect
 
 logger = logging.Logger(__name__)
 
@@ -141,11 +141,11 @@ class LocalPlanner:
                 is_passed_time_horizon = t_nxt <= t_dst
 
         if collision_free_transition and has_reached_dst:
-            status = LocalPlannerStatus.REACHED
+            status = LocalPlannerRRTConnect.REACHED
         elif collision_free_transition and not has_reached_dst:
-            status = LocalPlannerStatus.ADVANCED
+            status = LocalPlannerRRTConnect.ADVANCED
         else:
-            status = LocalPlannerStatus.TRAPPED
+            status = LocalPlannerRRTConnect.TRAPPED
         path = np.vstack(path) if path else np.array([]).reshape((0, state_dst.size))
         return status, path
 
@@ -222,7 +222,7 @@ class RRTConnectPlannerTimeVarying:
             state_free,
             time_mode=tree_a.time_mode
         )
-        if status == LocalPlannerStatus.TRAPPED:
+        if status == LocalPlannerRRTConnect.TRAPPED:
             return path
 
         self.ingest_path_in_tree(tree_a, local_path, i_nearest_a)
@@ -238,7 +238,7 @@ class RRTConnectPlannerTimeVarying:
             time_mode=tree_b.time_mode
         )
 
-        if status == LocalPlannerStatus.REACHED:
+        if status == LocalPlannerRRTConnect.REACHED:
             self.ingest_path_in_tree(tree_b, local_path, i_nearest_b)
             i_state_new_b = tree_b.vert_cnt - 1
             i_state_start, i_state_goal = self.sort_indices(tree_a, i_state_new_a, i_state_new_b)

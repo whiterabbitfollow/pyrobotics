@@ -1,3 +1,5 @@
+from matplotlib.patches import Rectangle
+
 from examples.moving.moving_world import MovingBox1DimWorld
 from pyrb.mp.planners.moving.rrt_connect import RRTConnectPlannerTimeVarying
 import numpy as np
@@ -18,8 +20,9 @@ planner = RRTConnectPlannerTimeVarying(
     max_nr_vertices=int(1e5)
 )
 
+goal_config = world.robot.goal_state
 start_state = np.append(world.robot.config, 0)
-goal_state = np.append(world.robot.goal_state, TIME_HORIZON)
+goal_state = np.append(goal_config, TIME_HORIZON)
 
 path, status = planner.plan(
     start_state,
@@ -43,5 +46,18 @@ for tree, color in ((planner.tree_start, "blue"), (planner.tree_goal, "red")):
 
 if path.size > 0:
     ax.plot(path[:, 0], path[:, 1], color="orange", label="path", lw=2, ls="--", marker=".")
+
+goal_region_r = planner.goal_region_radius
+goal_region_xy_lower_corner = (goal_config[0] - goal_region_r, 0)
+
+ax.add_patch(
+    Rectangle(
+        goal_region_xy_lower_corner,
+        width=goal_region_r*2,
+        height=TIME_HORIZON,
+        alpha=0.1,
+        color="red"
+    )
+)
 
 plt.show()

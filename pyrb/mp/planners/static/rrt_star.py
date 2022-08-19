@@ -5,8 +5,8 @@ from collections import defaultdict
 import numpy as np
 
 from pyrb.mp.base_world import BaseMPWorld
-from pyrb.mp.planners.shared import Status, PlanningData
-from pyrb.mp.planners.static.rrt import LocalPlanner
+from pyrb.mp.planners.utils import Status, PlanningData, start_timer, is_vertex_in_goal_region
+from pyrb.mp.planners.static.local_planners import LocalPlanner
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -35,17 +35,9 @@ class RRTStarPlanner:
         self.cost_to_verts = np.zeros(self.max_nr_vertices)
         self.nearest_radius = nearest_radius
 
-    def start_timer(self):
-        time_s = time.time()
-        time_elapsed = time.time() - time_s
-        return time_s, time_elapsed
-
-    def is_vertex_in_goal_region(self, state):
-        distance = np.linalg.norm(state - self.state_goal)
-        return distance < self.goal_region_radius
-
     def is_tree_full(self):
         return self.vert_cnt >= self.max_nr_vertices
+
     def clear(self):
         self.vertices.fill(0)
         self.edges_child_to_parent.fill(0)
@@ -62,7 +54,7 @@ class RRTStarPlanner:
         self.state_goal = state_goal
         self.add_vertex_to_tree(state_start)
         path = []
-        time_s, time_elapsed = self.start_timer()
+        time_s, time_elapsed = start_timer()
         while not self.is_tree_full() and time_elapsed < max_planning_time and len(path) == 0:
             state_free = self.sample_collision_free_config()
             i_nearest, state_nearest = self.find_nearest_vertex(state_free)
@@ -70,7 +62,7 @@ class RRTStarPlanner:
             state_new = local_path[-1] if local_path.size > 0 else None
             if state_new is not None:
                 self.rewire(i_nearest, state_new)
-                if self.is_vertex_in_goal_region(state_new):
+                if is_vertex_in_goal_region(state_new, state_goal, self.goal_region_radius):
                     logger.debug("Found path to goal!!!")
                     path = self.find_path(state_start)
             time_elapsed = time.time() - time_s
@@ -202,14 +194,14 @@ class RRTStarPlannerModified(RRTStarPlanner):
         self.state_goal = state_goal
         self.add_vertex_to_tree(state_start)
         path = np.array([]).reshape((-1, ) + state_goal.shape)
-        time_s, time_elapsed = self.start_timer()
+        time_s, time_elapsed = start_timer()
         while not self.is_tree_full() and time_elapsed < max_planning_time and len(path) == 0:
             state_free = self.sample_collision_free_config()
             i_nearest, state_nearest = self.find_nearest_vertex(state_free)
             local_path = self.local_planner.plan(state_nearest, state_free, state_goal)
             for state_new in local_path:
                 self.rewire(i_nearest, state_new)
-                if self.is_vertex_in_goal_region(state_new):
+                if is_vertex_in_goal_region(state_new, state_goal, self.goal_region_radius):
                     logger.debug("Found path to goal!!!")
                     path = self.find_path(state_start)
                     break

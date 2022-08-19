@@ -8,8 +8,8 @@ from matplotlib.patches import Rectangle
 
 np.random.seed(14)  # Challenging, solvable with ~200 steps...
 
-PLANNING_TIME = 20
-TIME_HORIZON = 300
+PLANNING_TIME = 1
+TIME_HORIZON = 60
 
 world = MovingBox1DimWorld()
 world.reset()
@@ -43,7 +43,8 @@ goal_config = world.robot.goal_state
 path, status = planner.plan(
     start_config,
     goal_config,
-    max_planning_time=PLANNING_TIME
+    max_planning_time=PLANNING_TIME,
+    time_horizon=TIME_HORIZON
 )
 print(path, status.status)
 
@@ -52,8 +53,8 @@ fig, ax = plt.subplots(1, 1, figsize=(10, 10))
 
 i = planner.vert_cnt
 world.render_configuration_space(ax, time_horizon=TIME_HORIZON)
-ax.scatter(planner.vertices[:i, 0], planner.vertices[:i, 1])
 
+ax.scatter(planner.vertices[:i, 0], planner.vertices[:i, 1])
 for i_parent, indxs_children in planner.edges_parent_to_children.items():
     for i_child in indxs_children:
         q = np.stack([planner.vertices[i_parent], planner.vertices[i_child]], axis=0)

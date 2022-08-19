@@ -6,7 +6,7 @@ import time
 import numpy as np
 
 from pyrb.mp.base_world import BaseMPTimeVaryingWorld
-from pyrb.mp.planners.shared import PlanningData, Status
+from pyrb.mp.planners.utils import PlanningData, Status
 
 logger = logging.Logger(__name__)
 
@@ -201,10 +201,10 @@ class RRTPlannerTimeVarying:
         i_vert, vert = None, None
         if mask_valid_states.any():
             states_valid = self.vertices[:self.vert_cnt][mask_valid_states]
-            t_closest = np.max(states_valid[:, -1])
-            # TODO: could be problematic.... maybe need a time window so that we not only plan one step paths..
-            mask_valid_states = self.vertices[:self.vert_cnt, -1] == t_closest
-            states_valid = self.vertices[:self.vert_cnt][mask_valid_states]
+            # t_closest = np.max(states_valid[:, -1]) # TODO: Not sure this is optimal
+            # # TODO: could be problematic.... maybe need a time window so that we not only plan one step paths..
+            # mask_valid_states = self.vertices[:self.vert_cnt, -1] == t_closest
+            # states_valid = self.vertices[:self.vert_cnt][mask_valid_states]
             distance = np.linalg.norm(states_valid[:, :-1] - config, axis=1)
             i_vert_mask = np.argmin(distance)
             i_vert = mask_valid_states.nonzero()[0][i_vert_mask]
