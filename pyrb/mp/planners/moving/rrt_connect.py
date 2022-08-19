@@ -68,11 +68,6 @@ class TreeGoal(Tree):
         return i_vert, vert
 
 
-def is_vertex_in_goal_region(q, q_goal, goal_region_radius):
-    distance = np.linalg.norm(q - q_goal)
-    return distance < goal_region_radius
-
-
 class LocalPlanner:
 
     def __init__(

@@ -6,14 +6,9 @@ import time
 import numpy as np
 
 from pyrb.mp.base_world import BaseMPTimeVaryingWorld
-from pyrb.mp.planners.utils import PlanningData, Status
+from pyrb.mp.planners.utils import PlanningData, Status, is_vertex_in_goal_region
 
 logger = logging.Logger(__name__)
-
-
-def is_vertex_in_goal_region(q, q_goal, goal_region_radius):
-    distance = np.linalg.norm(q - q_goal)
-    return distance < goal_region_radius
 
 
 class LocalPlanner:
