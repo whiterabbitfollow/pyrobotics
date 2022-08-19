@@ -4,6 +4,7 @@ import time
 import numpy as np
 
 from pyrb.mp.planners.moving.rrt import RRTPlannerTimeVarying
+from pyrb.mp.planners.utils import start_timer
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -34,7 +35,7 @@ class RRTStarPlannerTimeVarying(RRTPlannerTimeVarying):
     ):
         self.state_goal = config_goal
         self.add_vertex_to_tree(state_start)
-        time_s, time_elapsed = self.start_timer()
+        time_s, time_elapsed = start_timer()
         while not self.is_tree_full() and time_elapsed < max_planning_time:
             # TODO: Need some better stopping criteria, that is configurable
             state_free = self.sample_collision_free_config(time_horizon)
@@ -55,7 +56,7 @@ class RRTStarPlannerTimeVarying(RRTPlannerTimeVarying):
                 in_goal = distance < self.goal_region_radius
                 if in_goal.any():
                     time_horizon = min(time_horizon, ingested_times[in_goal].min())
-                    print(
+                    logger.debug(
                         f"Found solution, "
                         f"time horizon: {time_horizon}, "
                         f"planning time left: {max_planning_time - time_elapsed}"
@@ -72,7 +73,10 @@ class RRTStarPlannerTimeVarying(RRTPlannerTimeVarying):
         # i_nearest is a bit redundant here...
         indxs_states_nearest_coll_free, local_paths = self.get_collision_free_past_nearest_indices_and_paths(state_new)
         config_new = state_new[:-1]
-        best_subset_indx, best_vert_indx, best_edge_cost = self.find_nearest_indx_with_shortest_path(indxs_states_nearest_coll_free, config_new)
+        best_subset_indx, best_vert_indx, best_edge_cost = self.find_nearest_indx_with_shortest_path(
+            indxs_states_nearest_coll_free,
+            config_new
+        )
         # TODO: could be indx out of bounce here...
         best_local_path = local_paths[best_subset_indx]
         # TODO: should I ingest the other paths as well? ...

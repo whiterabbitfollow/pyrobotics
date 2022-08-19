@@ -1,80 +1,14 @@
 from collections import defaultdict
 import logging
-import math
 import time
 
 import numpy as np
 
 from pyrb.mp.base_world import BaseMPTimeVaryingWorld
-from pyrb.mp.planners.utils import PlanningData, Status, is_vertex_in_goal_region
+from pyrb.mp.planners.moving.local_planners import LocalPlanner
+from pyrb.mp.planners.utils import PlanningData, Status, is_vertex_in_goal_region, start_timer
 
 logger = logging.Logger(__name__)
-
-
-class LocalPlanner:
-
-    def __init__(
-            self,
-            world,
-            min_step_size,
-            max_distance,
-            global_goal_region_radius,
-            max_actuation,
-            nr_coll_steps=10
-    ):
-        self.global_goal_region_radius = global_goal_region_radius
-        self.max_distance = max_distance
-        self.min_step_size = min_step_size  # TODO: unused...
-        self.world = world
-        self.max_actuation = max_actuation
-        self.nr_coll_steps = nr_coll_steps
-
-    def plan(self, state_src, state_dst, config_global_goal=None, full_plan=False):
-        max_nr_steps = self.compute_max_nr_steps(state_src, state_dst, full_plan)
-        state_prev = state_src
-        config_dst = state_dst[:-1]
-        path = np.zeros((max_nr_steps, state_prev.size))
-        cnt = 0
-        for delta_t in range(1, max_nr_steps + 1):
-            config_prev = state_prev[:-1]
-            t_prev = state_prev[-1]
-            config_delta = np.clip(config_dst - config_prev, -self.max_actuation, self.max_actuation)
-            config_nxt = config_prev + config_delta
-            state_nxt = np.append(config_nxt, t_prev + 1)
-            collision_free_transition = self.world.is_collision_free_transition(
-                state_src=state_prev,
-                state_dst=state_nxt,
-                nr_coll_steps=self.nr_coll_steps
-            )
-            is_in_global_goal = config_global_goal is not None and is_vertex_in_goal_region(
-                config_nxt,
-                config_global_goal,
-                self.global_goal_region_radius
-            )
-            if np.abs(config_delta).sum() == 0:
-                # TODO: tmp hack.... NEEDS TO BE FIXED!!!
-                break
-            if collision_free_transition:
-                state_prev = state_nxt
-                path[cnt, :] = state_nxt
-                cnt += 1
-            if is_in_global_goal or not collision_free_transition:
-                break
-        return path[:cnt, :]
-
-    def compute_max_nr_steps(self, state_src, state_dst, full_plan):
-        config_src = state_src[:-1]
-        config_dst = state_dst[:-1]
-        config_delta = config_dst - config_src
-        t_src = state_src[-1]
-        t_dst = state_dst[-1]
-        nr_steps = t_dst - t_src
-        distance = np.linalg.norm(config_delta)
-        if not full_plan:
-            distance = min(distance, self.max_distance)
-        nr_steps_full_act = math.ceil(distance / self.max_actuation)
-        max_nr_steps = int(min(nr_steps, nr_steps_full_act))
-        return max_nr_steps
 
 
 class RRTPlannerTimeVarying:
@@ -121,7 +55,7 @@ class RRTPlannerTimeVarying:
             time_horizon=300
     ):
         self.add_vertex_to_tree(state_start)
-        time_s, time_elapsed = self.start_timer()
+        time_s, time_elapsed = start_timer()
         found_solution = False
         while (
                 not self.is_tree_full() and
@@ -151,11 +85,6 @@ class RRTPlannerTimeVarying:
             time_elapsed = time.time() - time_s
         path = self.find_path(state_start, config_goal)
         return path, self.compile_planning_data(path, time_elapsed, self.vert_cnt)
-
-    def start_timer(self):
-        time_s = time.time()
-        time_elapsed = time.time() - time_s
-        return time_s, time_elapsed
 
     def is_tree_full(self):
         return self.vert_cnt >= self.max_nr_vertices
@@ -292,7 +221,7 @@ class ModifiedRRTPlannerTimeVarying(RRTPlannerTimeVarying):
         if naive_path.size > 0:
             logger.debug("Naive path solves problem. Done!")
             return naive_path, None
-        time_s, time_elapsed = self.start_timer()
+        time_s, time_elapsed = start_timer()
         found_solution = False
         while (
                 not self.is_tree_full() and
