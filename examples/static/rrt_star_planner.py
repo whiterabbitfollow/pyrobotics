@@ -5,7 +5,7 @@ import matplotlib
 import numpy as np
 
 from examples.static.static_world import StaticBoxesWorld
-from pyrb.mp.planners.static.rrt_star import RRTStarPlannerModified, logger
+from pyrb.mp.planners.static.rrt_star import RRTStarPlanner, RRTStarPlannerModified, logger
 
 import logging
 import sys
@@ -18,14 +18,14 @@ matplotlib.rc("font", size=16)
 
 world = StaticBoxesWorld()
 
-# np.random.seed(1)
+np.random.seed(1)
 world.reset()
 
-planner = RRTStarPlannerModified(world, max_nr_vertices=int(1e4), nearest_radius=0.4)
+planner = RRTStarPlanner(world, max_nr_vertices=int(1e4), nearest_radius=0.4, min_step_size_local_planner=0.2)
 q_start = planner.sample_collision_free_config()
 q_goal = planner.sample_collision_free_config()
 
-path, status = planner.plan(q_start, q_goal, max_planning_time=20)
+path, status = planner.plan(q_start, q_goal, max_planning_time=10)
 print(status.time_taken)
 
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 10))
@@ -34,17 +34,17 @@ world.robot.set_config(q_start)
 world.render_world(ax1)
 world.render_configuration_space(ax2)
 
-for i_parent, indxs_children in planner.edges_parent_to_children.items():
+for i_parent, indxs_children in planner.tree.edges_parent_to_children.items():
     for i_child in indxs_children:
-        q = np.stack([planner.vertices[i_parent], planner.vertices[i_child]], axis=0)
+        q = np.stack([planner.tree.vertices[i_parent], planner.tree.vertices[i_child]], axis=0)
         ax2.plot(q[:, 0], q[:, 1], color="black")
 
 
 ax2.scatter(q_start[0], q_start[1], color="green", label="start, $q_I$")
 ax2.scatter(q_goal[0], q_goal[1], color="red", label="goal, $q_G$")
 
-vert_cnt = planner.vert_cnt
-verts = planner.vertices
+vert_cnt = planner.tree.vert_cnt
+verts = planner.tree.vertices
 ax2.scatter(verts[:vert_cnt, 0], verts[:vert_cnt, 1], color="black")
 
 if path.size:
