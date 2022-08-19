@@ -2,7 +2,7 @@ from enum import Enum, auto
 
 import numpy as np
 
-from pyrb.mp.planners.utils import is_vertex_in_goal_region
+from pyrb.mp.utils.utils import is_vertex_in_goal_region
 
 
 class LocalRRTConnectPlannerStatus(Enum):

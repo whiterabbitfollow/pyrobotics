@@ -6,7 +6,7 @@ import numpy as np
 
 from pyrb.mp.base_world import BaseMPTimeVaryingWorld
 from pyrb.mp.planners.moving.local_planners import LocalPlanner
-from pyrb.mp.planners.utils import PlanningData, Status, is_vertex_in_goal_region, start_timer
+from pyrb.mp.utils.utils import PlanningData, Status, is_vertex_in_goal_region, start_timer
 
 logger = logging.Logger(__name__)
 

@@ -5,8 +5,8 @@ import numpy as np
 
 from pyrb.mp.base_world import BaseMPWorld
 from pyrb.mp.planners.moving.rrt import LocalPlanner
-from pyrb.mp.planners.utils import PlanningData, Status, start_timer, is_vertex_in_goal_region
-from pyrb.mp.planners.static.tree import Tree
+from pyrb.mp.utils.utils import PlanningData, Status, start_timer, is_vertex_in_goal_region
+from pyrb.mp.utils.tree import Tree
 
 logger = logging.getLogger()
 

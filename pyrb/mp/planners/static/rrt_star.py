@@ -5,7 +5,7 @@ from collections import defaultdict
 import numpy as np
 
 from pyrb.mp.base_world import BaseMPWorld
-from pyrb.mp.planners.utils import Status, PlanningData, start_timer, is_vertex_in_goal_region
+from pyrb.mp.utils.utils import Status, PlanningData, start_timer, is_vertex_in_goal_region
 from pyrb.mp.planners.static.local_planners import LocalPlanner
 
 logger = logging.getLogger(__name__)

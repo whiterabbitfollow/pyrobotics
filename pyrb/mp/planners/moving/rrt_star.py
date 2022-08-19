@@ -3,14 +3,19 @@ import time
 
 import numpy as np
 
-from pyrb.mp.planners.moving.rrt import RRTPlannerTimeVarying
-from pyrb.mp.planners.utils import start_timer
+from pyrb.mp.utils.utils import start_timer
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-class RRTStarPlannerTimeVarying(RRTPlannerTimeVarying):
+class Tree:
+
+    def __init__(self):
+        self.cost_to_verts = np.zeros(self.max_nr_vertices)
+
+
+class RRTStarPlannerTimeVarying():
 
     def __init__(self, *args, nearest_radius=.2, **kwargs):
         super().__init__(*args, **kwargs)

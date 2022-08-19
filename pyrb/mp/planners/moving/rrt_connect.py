@@ -4,7 +4,7 @@ import logging
 import numpy as np
 
 from pyrb.mp.base_world import BaseMPTimeVaryingWorld
-from pyrb.mp.planners.utils import PlanningData, Status
+from pyrb.mp.utils.utils import PlanningData, Status
 from pyrb.mp.planners.static.rrt import Tree
 from pyrb.mp.planners.moving.local_planners import LocalPlannerRRTConnect, TimeModes
 from pyrb.mp.planners.static.local_planners import LocalRRTConnectPlannerStatus

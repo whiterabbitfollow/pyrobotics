@@ -4,7 +4,7 @@ import numpy as np
 
 from pyrb.mp.base_world import BaseMPWorld
 from pyrb.mp.planners.static.local_planners import LocalPlannerRRTConnect, LocalRRTConnectPlannerStatus
-from pyrb.mp.planners.utils import Status, PlanningData, start_timer
+from pyrb.mp.utils.utils import Status, PlanningData, start_timer
 from pyrb.mp.planners.static.rrt import Tree
 
 
