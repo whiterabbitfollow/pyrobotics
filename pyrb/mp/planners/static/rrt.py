@@ -4,8 +4,8 @@ import time
 import numpy as np
 
 from pyrb.mp.base_world import BaseMPWorld
-from pyrb.mp.planners.moving.rrt import LocalPlanner
-from pyrb.mp.utils.utils import PlanningData, Status, start_timer, is_vertex_in_goal_region
+from pyrb.mp.planners.static.local_planners import LocalPlanner
+from pyrb.mp.utils.utils import start_timer, is_vertex_in_goal_region, compile_planning_data
 from pyrb.mp.utils.tree import Tree
 
 logger = logging.getLogger()
@@ -44,8 +44,7 @@ class RRTPlanner:
                     logger.debug("Found vertex in goal region!")
                     path = self.find_path(state_start)
             time_elapsed = time.time() - time_s
-        return path, self.compile_planning_data(path, time_elapsed)
-
+        return path, compile_planning_data(path, time_elapsed, self.tree.vert_cnt)
 
     def find_path(self, state_start):
         vertices = self.tree.get_vertices()
@@ -53,14 +52,8 @@ class RRTPlanner:
         mask_vertices_goal = distances < self.goal_region_radius
         if mask_vertices_goal.any():
             i = mask_vertices_goal.nonzero()[0][0]
-            state = vertices[i, :]
-            path = [state]
-            while (state != state_start).any():
-                i = self.tree.get_vertex_parent_index(i)
-                state = vertices[i, :]
-                path.append(state)
-            path.reverse()
-            path = np.vstack(path)
+            path = self.tree.find_path_to_root_from_vertex_index(i)
+            path = path[::-1]
         else:
             path = np.array([]).reshape((-1,) + state_start.shape)
         return path
@@ -70,10 +63,6 @@ class RRTPlanner:
             state = np.random.uniform(self.configuration_limits[:, 0], self.configuration_limits[:, 1])
             if self.world.is_collision_free_state(state):
                 return state
-
-    def compile_planning_data(self, path, time_elapsed):
-        status = Status.SUCCESS if path.size else Status.FAILURE
-        return PlanningData(status=status, time_taken=time_elapsed, nr_verts=self.tree.vert_cnt)
 
 
 class RRTPlannerModified(RRTPlanner):
@@ -96,4 +85,4 @@ class RRTPlannerModified(RRTPlanner):
                     path = self.find_path(state_start)
                     break
             time_elapsed = time.time() - time_s
-        return path, self.compile_planning_data(path, time_elapsed)
+        return path, compile_planning_data(path, time_elapsed, self.tree.vert_cnt)

@@ -3,6 +3,8 @@ import time
 import numpy as np
 
 
+
+
 def start_timer():
     time_s = time.time()
     time_elapsed = time.time() - time_s
@@ -18,6 +20,10 @@ class Status:
     SUCCESS = "success"
     FAILURE = "failure"
 
+
+def compile_planning_data(path, time_elapsed, nr_verts):
+    status = Status.SUCCESS if path.size else Status.FAILURE
+    return PlanningData(status=status, time_taken=time_elapsed, nr_verts=nr_verts)
 
 class PlanningData:
 

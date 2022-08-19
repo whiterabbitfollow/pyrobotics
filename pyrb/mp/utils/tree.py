@@ -43,3 +43,13 @@ class Tree:
 
     def get_vertex_parent_index(self, i_vertex):
         return self.edges_child_to_parent[i_vertex]
+
+    def find_path_to_root_from_vertex_index(self, i_vert):
+        vertices = self.get_vertices()
+        state = vertices[i_vert, :]
+        path = [state]
+        while i_vert:
+            i_vert = self.get_vertex_parent_index(i_vert)
+            state = vertices[i_vert, :]
+            path.append(state)
+        return np.vstack(path)
