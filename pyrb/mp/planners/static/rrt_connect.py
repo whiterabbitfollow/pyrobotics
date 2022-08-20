@@ -60,14 +60,12 @@ class RRTConnectPlanner:
         if status == LocalPlannerStatus.TRAPPED:
             return path
         state_new_a = local_path[-1]
-        i_state_new_a = tree_a.vert_cnt
-        tree_a.append_vertex(state_new_a, i_parent=i_nearest_a)
+        i_state_new_a = tree_a.append_vertex(state_new_a, i_parent=i_nearest_a)
         i_nearest_b, state_nearest_b = tree_b.find_nearest_vertex(state_new_a)
         status, local_path = self.local_planner.plan(state_nearest_b, state_new_a, full_plan=True)
         if status == LocalPlannerStatus.REACHED:
             state_new_b = local_path[-1]
-            i_state_new_b = tree_b.vert_cnt
-            tree_b.append_vertex(state_new_b, i_parent=i_nearest_b)
+            i_state_new_b = tree_b.append_vertex(state_new_b, i_parent=i_nearest_b)
             i_state_start, i_state_goal = self.sort_indices(tree_a, i_state_new_a, i_state_new_b)
             path = self.connect_trees(
                 i_state_start,

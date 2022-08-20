@@ -5,6 +5,7 @@ import matplotlib
 import numpy as np
 
 from examples.static.static_world import StaticBoxesWorld
+from examples.utils import render_tree
 from pyrb.mp.planners.static.rrt_star import RRTStarPlanner, RRTStarPlannerModified, logger
 
 import logging
@@ -33,25 +34,16 @@ fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 10))
 world.robot.set_config(q_start)
 world.render_world(ax1)
 world.render_configuration_space(ax2)
-
-for i_parent, indxs_children in planner.tree.edges_parent_to_children.items():
-    for i_child in indxs_children:
-        q = np.stack([planner.tree.vertices[i_parent], planner.tree.vertices[i_child]], axis=0)
-        ax2.plot(q[:, 0], q[:, 1], color="black")
-
+vertices, edges = planner.tree.get_vertices(), planner.tree.get_edges()
+render_tree(ax2, vertices, edges)
 
 ax2.scatter(q_start[0], q_start[1], color="green", label="start, $q_I$")
 ax2.scatter(q_goal[0], q_goal[1], color="red", label="goal, $q_G$")
-
-vert_cnt = planner.tree.vert_cnt
-verts = planner.tree.vertices
-ax2.scatter(verts[:vert_cnt, 0], verts[:vert_cnt, 1], color="black")
 
 if path.size:
     path = np.array(path)
     ax2.plot(path[:, 0], path[:, 1], color="blue", label="path")
     ax2.scatter(path[:, 0], path[:, 1], color="blue")
-
 
 ax2.add_patch(Circle(q_goal, radius=planner.goal_region_radius, alpha=0.2, color="red"))
 ax2.add_patch(Circle(q_start, radius=0.04, color="green"))

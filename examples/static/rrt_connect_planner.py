@@ -5,6 +5,7 @@ import matplotlib
 import numpy as np
 
 from examples.static.static_world import StaticBoxesWorld
+from examples.utils import render_tree
 from pyrb.mp.planners.static.rrt_connect import RRTConnectPlanner
 
 
@@ -25,13 +26,8 @@ world.render_world(ax1)
 world.render_configuration_space(ax2)
 
 for tree, color in ((planner.tree_start, "blue"), (planner.tree_goal, "red")):
-    vert_cnt = tree.vert_cnt
-    verts = tree.vertices
-    ax2.scatter(verts[:vert_cnt, 0], verts[:vert_cnt, 1], color="black")
-    for i_parent, indxs_children in tree.edges_parent_to_children.items():
-        for i_child in indxs_children:
-            q = np.stack([verts[i_parent], verts[i_child]], axis=0)
-            ax2.plot(q[:, 0], q[:, 1], color=color)
+    vertices, edges = tree.get_vertices(), tree.get_edges()
+    render_tree(ax2, vertices, edges, color=color)
 
 ax2.scatter(q_start[0], q_start[1], color="green", label="start, $q_I$")
 ax2.scatter(q_goal[0], q_goal[1], color="red", label="goal, $q_G$")

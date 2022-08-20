@@ -2,13 +2,15 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
 import numpy as np
 
+from examples.utils import render_tree
+from pyrb.mp.planners.static.local_planners import LocalPlannerStatus
 from pyrb.mp.utils.tree import TreeRewire
 
 
 class DummyLocalPlanner:
 
     def plan(self, state_src, state_dst, state_global_goal=None, full_plan=False):
-        return state_dst.reshape(1, -1)
+        return LocalPlannerStatus.REACHED, state_dst.reshape(1, -1)
 
 
 local_planner = DummyLocalPlanner()
@@ -18,16 +20,7 @@ tree.add_vertex(np.array([0, 0]))                       # 0
 tree.append_vertex(np.array([0.2, 0.8]), i_parent=0)    # 1
 tree.append_vertex(np.array([0.5, 0.6]), i_parent=1)    # 2
 tree.append_vertex(np.array([0.5, 0.5]), i_parent=0)    # 3
-
-
-def render_tree(ax, tree):
-    color = "black"
-    verts = tree.get_vertices()
-    ax.scatter(verts[:, 0], verts[:, 1], color=color)
-    for i_parent, indxs_children in tree.edges_parent_to_children.items():
-        for i_child in indxs_children:
-            q = np.stack([verts[i_parent], verts[i_child]], axis=0)
-            ax.plot(q[:, 0], q[:, 1], color=color)
+tree.append_vertex(np.array([0.5, 0.45]), i_parent=0)    # 4
 
 
 def render_nearest_and_new_vert(ax, new_vert, tree, nearest_vertices_indices):
@@ -49,15 +42,15 @@ i_new = tree.vert_cnt
 indices = tree.get_collision_free_nearest_indices(new_vert)
 
 
-render_tree(ax1, tree)
+render_tree(ax1, tree.get_vertices(), tree.get_edges())
 render_nearest_and_new_vert(ax1, new_vert, tree, indices)
 ax1.set_aspect("equal")
 ax1.set_title("Before wiring new through nearest")
 ax1.legend(loc="best")
 
-tree.wire_new_through_nearest(i_new, new_vert, indices)
+tree.wire_new_through_nearest(new_vert, indices)
 
-render_tree(ax2, tree)
+render_tree(ax2, tree.get_vertices(), tree.get_edges())
 render_nearest_and_new_vert(ax2, new_vert, tree, indices)
 ax2.set_aspect("equal")
 ax2.set_title("After wiring new through nearest")
@@ -65,7 +58,7 @@ ax2.legend(loc="best")
 
 
 tree.rewire_nearest_through_new(i_new, new_vert, indices)
-render_tree(ax3, tree)
+render_tree(ax3, tree.get_vertices(), tree.get_edges())
 render_nearest_and_new_vert(ax3, new_vert, tree, indices)
 ax3.set_aspect("equal")
 ax3.set_title("After rewiring through new")

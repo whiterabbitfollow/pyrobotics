@@ -78,8 +78,7 @@ class RRTPlannerModified(RRTPlanner):
             _, local_path = self.local_planner.plan(state_nearest, state_free, self.state_goal)
             i_prev = i_nearest
             for state in local_path:
-                i_current = self.tree.vert_cnt
-                self.tree.append_vertex(state, i_parent=i_prev)
+                i_current = self.tree.append_vertex(state, i_parent=i_prev)
                 i_prev = i_current
                 if is_vertex_in_goal_region(state, state_goal, self.goal_region_radius):
                     path = self.find_path(state_start)

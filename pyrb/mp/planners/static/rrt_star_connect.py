@@ -103,8 +103,7 @@ class RRTStarConnectPlanner:
         if status == LocalPlannerStatus.REACHED:
             state_new_b = local_path[-1]
             connected = True
-            i_state_new_b = tree_b.vert_cnt
-            tree_b.append_vertex(state_new_b, i_parent=i_nearest_b)
+            i_state_new_b = tree_b.append_vertex(state_new_b, i_parent=i_nearest_b)
             i_state_start, i_state_goal = self.sort_indices(tree_a, i_state_new_a, i_state_new_b)
             # path = self.connect_trees(
             #     i_state_start,
@@ -130,10 +129,8 @@ class RRTStarConnectPlanner:
         path_state_to_goal = self.tree_goal.find_path_to_root_from_vertex_index(i_state_goal)
         i_parent = i_state_start
         for state_new in path_state_to_goal[1:, :]:
-            i_child = self.tree_start.vert_cnt
-            self.tree_start.append_vertex(state_new, i_parent=i_parent)
-            i_parent = i_child
-            # TODO: prune...
+            i_parent = self.tree_start.append_vertex(state_new, i_parent=i_parent)
+        self.tree_goal.prune_vertex(i_state_goal)   # TODO: maybe to much pruning...
 
     def connect_trees(self, i_state_start,  i_state_goal):
         path_state_to_start = self.tree_start.find_path_to_root_from_vertex_index(i_state_start)

@@ -5,6 +5,7 @@ import matplotlib
 import numpy as np
 
 from examples.static.static_world import StaticBoxesWorld
+from examples.utils import render_tree
 from pyrb.mp.planners.static.rrt import RRTPlannerModified
 
 
@@ -24,14 +25,8 @@ fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 10))
 world.render_world(ax1)
 world.render_configuration_space(ax2)
 
-vert_cnt = planner.vert_cnt
-verts = planner.vertices
-ax2.scatter(verts[:vert_cnt, 0], verts[:vert_cnt, 1], color="black")
-
-for i_parent, indxs_children in planner.edges_parent_to_children.items():
-    for i_child in indxs_children:
-        q = np.stack([planner.vertices[i_parent], planner.vertices[i_child]], axis=0)
-        ax2.plot(q[:, 0], q[:, 1], color="black")
+vertices, edges = planner.tree.get_vertices(), planner.tree.get_edges()
+render_tree(ax2, vertices, edges)
 
 ax2.scatter(q_start[0], q_start[1], color="green", label="start, $q_I$")
 ax2.scatter(q_goal[0], q_goal[1], color="red", label="goal, $q_G$")
