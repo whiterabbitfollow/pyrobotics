@@ -103,7 +103,7 @@ class MovingBox1DimWorld(BaseMPTimeVaryingWorld):
         joint_limits = self.robot.joint_limits
         theta_1_nr_data_points = 100
         thetas_raw_1 = np.linspace(joint_limits[0, 0], joint_limits[0, 1], theta_1_nr_data_points)
-        time = np.arange(0, time_horizon)
+        time = np.arange(1, time_horizon + 1)
         theta_grid_1, time_grid_2 = np.meshgrid(thetas_raw_1, time)
         states = np.stack([theta_grid_1.ravel(), time_grid_2.ravel()], axis=1)
         collision_mask = []
@@ -127,7 +127,7 @@ class MovingBox1DimWorld(BaseMPTimeVaryingWorld):
         ax.set_xlabel(r"$\theta_1$")
         ax.set_ylabel(r"time")
         ax.set_xlim(joint_limits[0, 0], joint_limits[0, 1])
-        ax.set_ylim(0, time_horizon)
+        ax.set_ylim(0, time_horizon + 5)
         # ax.legend(loc="best")
 
 

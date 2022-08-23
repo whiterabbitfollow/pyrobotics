@@ -122,21 +122,6 @@ class StaticBoxesWorld(BaseMPWorld):
         self.robot.set_config(np.array([np.pi / 2 + np.pi / 10, -np.pi / 2 - np.pi / 10]))
         self.obstacles.reset(obstacle_free_region=self.robot.collision_manager)
 
-    def is_collision_free_state(self, state) -> bool:
-        self.robot.set_config(state)
-        return not self.robot.collision_manager.in_collision_other(self.obstacles.collision_manager)
-
-    def is_collision_free_transition(self, state_src, state_dst):
-        N = 10
-        is_collision_free = False
-        for i in range(0, N + 1):
-            alpha = i / N
-            state = state_dst * alpha + (1 - alpha) * state_src
-            is_collision_free = self.is_collision_free_state(state)
-            if not is_collision_free:
-                break
-        return is_collision_free
-
     def view(self):
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
         self.render_world(ax1)

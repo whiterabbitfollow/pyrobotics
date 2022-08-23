@@ -1,52 +1,59 @@
-import matplotlib.pyplot as plt
-from matplotlib.patches import Circle
-import matplotlib
-
 import numpy as np
 
 from examples.static.static_world import StaticBoxesWorld
-from examples.utils import render_tree
-from pyrb.mp.planners.static.rrt_star_connect import RRTStarConnectPlanner
-
-matplotlib.rc("font", size=16)
+from examples.utils import plot_rrt_connect_planner_results
+from pyrb.mp.planners.problem import PlanningProblem
+from pyrb.mp.planners.rrt import LocalPlanner
+from pyrb.mp.planners.rrt_connect import RRTConnectPlanner
+from pyrb.mp.utils.goal_regions import RealVectorGoalRegion
+from pyrb.mp.utils.spaces import RealVectorStateSpace
+from pyrb.mp.utils.trees.tree_rewire import TreeRewire
 
 np.random.seed(22)
 world = StaticBoxesWorld()
 world.reset()
 
-planner = RRTStarConnectPlanner(
+state_space = RealVectorStateSpace(
     world,
-    max_nr_vertices=int(1e3)
+    world.robot.nr_joints,
+    world.robot.joint_limits
 )
 
+goal_region = RealVectorGoalRegion()
 
-q_start = planner.sample_collision_free_config()
-q_goal = planner.sample_collision_free_config()
+local_planner = LocalPlanner(
+    min_path_distance=0.1,
+    min_coll_step_size=0.05,
+    max_distance=0.5
+)
 
-path, status = planner.plan(q_start, q_goal, min_planning_time=1, max_planning_time=10)
+planner = RRTConnectPlanner(
+    space=state_space,
+    tree_start=TreeRewire(
+        local_planner=local_planner,
+        space=state_space,
+        nearest_radius=1.0,
+        max_nr_vertices=int(1e4)
+    ),
+    tree_goal=TreeRewire(
+        local_planner=local_planner,
+        space=state_space,
+        nearest_radius=1.0,
+        max_nr_vertices=int(1e4)
+    ),
+    local_planner=local_planner
+)
 
+problem = PlanningProblem(
+    planner=planner
+)
 
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 10))
-world.render_world(ax1)
-world.render_configuration_space(ax2)
+state_start = state_space.sample_collision_free_state()
+state_goal = state_space.sample_collision_free_state()
+goal_region.set_goal_state(state_goal)
 
-for tree, color in ((planner.tree_start, "blue"), (planner.tree_goal, "red")):
-    vertices, edges = tree.get_vertices(), tree.get_edges()
-    render_tree(ax2, vertices, edges, color=color)
+path, status = problem.solve(state_start, goal_region, min_planning_time=3, max_planning_time=10)
 
-ax2.scatter(q_start[0], q_start[1], color="green", label="start, $q_I$")
-ax2.scatter(q_goal[0], q_goal[1], color="red", label="goal, $q_G$")
-
-
-if path.size > 0:
-    ax2.plot(path[:, 0], path[:, 1], color="orange", label="path", lw=2, ls="--", marker=".")
-
-ax2.add_patch(Circle(q_goal, radius=planner.goal_region_radius, alpha=0.2, color="red"))
-ax2.add_patch(Circle(q_start, radius=0.04, color="green"))
-
-ax2.legend(loc="best")
-ax2.set_title("Sampling based motion planning")
-ax2.set_xlabel(r"$\theta_1$")
-ax2.set_ylabel(r"$\theta_2$")
-
-plt.show()
+plot_rrt_connect_planner_results(
+    world, planner, path, state_start, state_goal, goal_region
+)

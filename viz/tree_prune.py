@@ -2,7 +2,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from examples.utils import render_tree
-from pyrb.mp.utils.tree import Tree
+from pyrb.mp.utils.trees.tree import Tree
+
 
 tree = Tree(max_nr_vertices=10, vertex_dim=2)
 

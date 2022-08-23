@@ -3,13 +3,13 @@ from matplotlib.patches import Circle
 import numpy as np
 
 from examples.utils import render_tree
-from pyrb.mp.planners.static.local_planners import LocalPlannerStatus
-from pyrb.mp.utils.tree import TreeRewire
+from pyrb.mp.utils.constants import LocalPlannerStatus
+from pyrb.mp.utils.trees.tree_rewire import TreeRewire
 
 
 class DummyLocalPlanner:
 
-    def plan(self, state_src, state_dst, state_global_goal=None, full_plan=False):
+    def plan(self, state_src, state_dst, max_distance=None):
         return LocalPlannerStatus.REACHED, state_dst.reshape(1, -1)
 
 
@@ -17,10 +17,10 @@ local_planner = DummyLocalPlanner()
 tree = TreeRewire(local_planner=local_planner, max_nr_vertices=100, nearest_radius=.2, vertex_dim=2)
 
 tree.add_vertex(np.array([0, 0]))                       # 0
-tree.append_vertex(np.array([0.2, 0.8]), i_parent=0)    # 1
-tree.append_vertex(np.array([0.5, 0.6]), i_parent=1)    # 2
-tree.append_vertex(np.array([0.5, 0.5]), i_parent=0)    # 3
-tree.append_vertex(np.array([0.5, 0.45]), i_parent=0)    # 4
+tree.append_vertex_without_rewiring(np.array([0.2, 0.8]), i_parent=0)    # 1
+tree.append_vertex_without_rewiring(np.array([0.5, 0.6]), i_parent=1)    # 2
+tree.append_vertex_without_rewiring(np.array([0.5, 0.5]), i_parent=0)    # 3
+tree.append_vertex_without_rewiring(np.array([0.5, 0.45]), i_parent=0)    # 4
 
 
 def render_nearest_and_new_vert(ax, new_vert, tree, nearest_vertices_indices):
