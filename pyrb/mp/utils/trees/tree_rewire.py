@@ -20,7 +20,7 @@ class TreeRewire(Tree):
         i_new = self.vert_cnt
         i_nearest = i_parent
         indxs_states_nearest = self.space.get_nearest_states_indices(
-            self.get_vertices(), state, nearest_radius=self.nearest_radius
+            states=self.get_vertices(), state=state, nearest_radius=self.nearest_radius
         )
         indxs_states_nearest_coll_free = self.get_collision_free_nearest_indices(state, indxs_states_nearest)
         indxs_states_all_coll_free = np.append(indxs_states_nearest_coll_free, i_nearest)  # TODO: Not sure this is needed
@@ -68,8 +68,8 @@ class TreeRewire(Tree):
 class TreeRewireSpaceTime(TreeRewire):
 
     def __init__(self, *args, nearest_time_window, **kwargs):
-        super().__init__(*args, **kwargs)
         self.nearest_time_window = nearest_time_window
+        super().__init__(*args, **kwargs)
 
     def append_vertex(self, state, i_parent, edge_cost=None):
         i_new = self.vert_cnt
@@ -115,32 +115,40 @@ class TreeRewireSpaceTime(TreeRewire):
         nearest_radius = self.local_planner.max_actuation
         indices = np.array([], dtype=int)
         t = state[-1]
+        t_prv = t
         for t_delta in range(1, self.nearest_time_window + 1):
-            t = self.space.detransition(t)
+            t_nxt = self.space.detransition(t, dt=t_delta)
+            if t_nxt == t_prv:
+                break
             indices = np.append(
                 indices,
                 self.space.get_indices_of_states_within_time(
                     config=state[:-1],
                     states=self.get_vertices(),
-                    t=t,
+                    t=t_nxt,
                     nearest_radius=nearest_radius * t_delta
                 )
             )
+            t_prv = t_nxt
         return indices
 
     def get_nearest_future_states_indices(self, state):
         nearest_radius = self.local_planner.max_actuation
         indices = np.array([], dtype=int)
         t = state[-1]
+        t_prv = t
         for t_delta in range(1, self.nearest_time_window + 1):
-            t = self.space.transition(t)
+            t_nxt = self.space.transition(t, dt=t_delta)
+            if t_nxt == t_prv:
+                break
             indices = np.append(
                 indices,
                 self.space.get_indices_of_states_within_time(
                     config=state[:-1],
                     states=self.get_vertices(),
-                    t=t,
+                    t=t_nxt,
                     nearest_radius=nearest_radius * t_delta
                 )
             )
+            t_prv = t_nxt
         return indices

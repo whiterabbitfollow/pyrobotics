@@ -13,6 +13,9 @@ class RealVectorGoalRegion:
     def is_within(self, state):
         return np.linalg.norm(state - self.state) < self.radius
 
+    def mask_is_within(self, states):
+        return np.linalg.norm(states - self.state, axis=1) < self.radius
+
 
 class RealVectorTimeGoalRegion(RealVectorGoalRegion):
 
@@ -25,3 +28,6 @@ class RealVectorTimeGoalRegion(RealVectorGoalRegion):
 
     def is_within(self, state):
         return np.linalg.norm(state[:-1] - self.state[:-1]) < self.radius and state[-1] == self.state[-1]
+
+    def mask_is_within(self, states):
+        return (np.linalg.norm(states[:, :-1] - self.state[:-1], axis=1) < self.radius) & (states[:, -1] == self.state[-1])

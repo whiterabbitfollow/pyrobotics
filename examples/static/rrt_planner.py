@@ -21,7 +21,7 @@ planner = RRTPlanner(
     space=state_space,
     tree=Tree(max_nr_vertices=int(1e3), vertex_dim=state_space.dim),
     local_planner=LocalPlanner(
-        min_path_distance=0.1,
+        min_path_distance=0.25,
         min_coll_step_size=0.05,
         max_distance=0.5
     )

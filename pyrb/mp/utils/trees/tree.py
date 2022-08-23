@@ -68,7 +68,7 @@ class Tree:
         return path_indices
 
     def prune_vertex(self, i_vert):
-        if i_vert == 0:
+        if i_vert == 0 or i_vert >= self.vert_cnt:
             # cannot prune root
             return
         self.vertices[i_vert:self.vert_cnt - 1, :] = self.vertices[i_vert + 1:self.vert_cnt, :]
@@ -92,6 +92,7 @@ class Tree:
         i_vert = i_orphans[0]
         if i_vert == 0:
             self.prune_orphans(i_orphans[1:])
+            return
         self.vertices[i_vert:self.vert_cnt - 1, :] = self.vertices[i_vert + 1:self.vert_cnt, :]
         # find any node that points to it??
         self.edges_child_to_parent[i_vert:self.vert_cnt - 1] = self.edges_child_to_parent[i_vert + 1:self.vert_cnt]
@@ -106,6 +107,6 @@ class Tree:
         self.edges_child_to_parent[:self.vert_cnt][mask_orphans] = -1
         i_orphans[i_orphans > i_vert] -= 1
         i_orphans_new = np.nonzero(mask_orphans)[0]
-        i_orphans = np.append(i_orphans[1:], i_orphans_new)
+        i_orphans = np.unique(np.append(i_orphans[1:], i_orphans_new))
         self.prune_orphans(i_orphans)
 

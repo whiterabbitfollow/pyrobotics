@@ -11,8 +11,7 @@ from matplotlib.patches import Polygon
 
 from pyrb.mp.utils.goal_regions import RealVectorTimeGoalRegion
 from pyrb.mp.utils.spaces import RealVectorTimeSpace
-from pyrb.mp.utils.trees.tree import Tree
-from pyrb.mp.utils.trees.tree_rewire import TreeRewire
+from pyrb.mp.utils.trees.tree_rewire import TreeRewireSpaceTime
 
 np.random.seed(14)  # Challenging, solvable with ~200 steps...
 PLANNING_TIME = 10
@@ -25,18 +24,20 @@ state_space = RealVectorTimeSpace(world, world.robot.nr_joints, world.robot.join
 goal_region = RealVectorTimeGoalRegion()
 
 local_planner = LocalPlannerSpaceTime(
-    state_space,
-    min_path_distance=0.2,
+    state_space.world.robot.max_actuation,
+    nr_time_steps=5,
+    min_path_distance=.3,
     min_coll_step_size=0.05,
-    max_distance=(1.0, 5)
+    max_distance=(1.0, 10)
 )
 
 planner = RRTPlanner(
     space=state_space,
-    tree=TreeRewire(
+    tree=TreeRewireSpaceTime(
         local_planner=local_planner,
         space=state_space,
         nearest_radius=1.0,
+        nearest_time_window=10,
         max_nr_vertices=int(1e4)
     ),
     local_planner=local_planner
@@ -54,10 +55,9 @@ goal_region.set_goal_state(state_goal)
 path, status = problem.solve(
     state_start,
     goal_region,
-    max_planning_time=1
+    max_iters=200
 )
 
-# # TODO: Could be the case that ingest to many states
 print(status.time_taken, status.status)
 
 world.create_space_time_map(time_horizon=TIME_HORIZON)

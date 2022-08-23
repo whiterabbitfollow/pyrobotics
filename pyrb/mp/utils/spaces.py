@@ -65,8 +65,7 @@ class RealVectorTimeSpace:
         return i_state_nearest, state_nearest
 
     def get_nearest_states_indices(self, states, state, nearest_radius):
-        distances = np.linalg.norm(states[:-1] - state[:-1], axis=1)
-        return (distances < nearest_radius).nonzero()[0]
+        raise NotImplementedError()
 
     def sample_collision_free_state(self):
         while True:
@@ -106,6 +105,10 @@ class RealVectorTimeSpace:
             valid_time_n_distance_verts_indxs = valid_time_verts_indxs[(distances < nearest_radius)]
         return valid_time_n_distance_verts_indxs
 
+    def is_valid_time_direction(self, t_src, t_dst):
+        return t_dst > t_src
+
+
 
 class RealVectorPastTimeSpace(RealVectorTimeSpace):
     # (R^n, R_+)
@@ -136,3 +139,6 @@ class RealVectorPastTimeSpace(RealVectorTimeSpace):
 
     def detransition(self, t, dt=1):
         return min(t + dt, self.time_horizon)
+
+    def is_valid_time_direction(self, t_src, t_dst):
+        return t_dst < t_src

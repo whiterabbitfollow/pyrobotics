@@ -28,13 +28,15 @@ class PlanningData:
 
 class PlanningProblem:
 
-    def __init__(self, planner):
+    def __init__(self, planner, debug=False):
         self.planner = planner
+        self.debug = debug
 
-    def solve(self, state_start, goal_region, max_planning_time=np.inf, min_planning_time=0):
+    def solve(self, state_start, goal_region, max_planning_time=np.inf, min_planning_time=0, max_iters=np.inf):
         time_s, time_elapsed = start_timer()
         self.planner.clear()
         self.planner.initialize_planner(state_start, goal_region)
+        iter_cnt = 0
         while (
                 self.planner.can_run() and
                 (
@@ -44,7 +46,12 @@ class PlanningProblem:
                 )
         ):
             self.planner.run()
+            if self.debug:
+                self.planner.debug(iter_cnt)
             time_elapsed = time.time() - time_s
+            iter_cnt += 1
+            if iter_cnt > max_iters:
+                break
         path = self.planner.get_path()
         return path, compile_planning_data(path, time_elapsed, self.planner.get_planning_meta_data())
 

@@ -3,7 +3,6 @@ import logging
 import numpy as np
 
 from pyrb.mp.utils.constants import LocalPlannerStatus
-from pyrb.mp.utils.trees.tree import Tree
 
 RRT_PLANNER_LOGGER_NAME = __file__
 logger = logging.getLogger(RRT_PLANNER_LOGGER_NAME)
@@ -19,11 +18,15 @@ class LocalPlanner:
     def plan(self, space, state_src, state_dst, max_distance=None):
         # assumes state_src is collision free
         max_distance = max_distance or self.max_distance
-        path = self.generate_path(space, state_src, state_dst, max_distance)
-        status, validated_path = self.collision_check_path(space, path)
+        coll_path = self.generate_path_for_collision_checking(space, state_src, state_dst, max_distance)
+        status, validated_path = self.collision_check_path(space, coll_path)
+        if validated_path.size:
+            path = self.interpolate_path(validated_path)
+        else:
+            path = validated_path
         if status == LocalPlannerStatus.ADVANCED and np.isclose(path[-1], state_dst).all():
             status = LocalPlannerStatus.REACHED
-        return status, validated_path
+        return status, path
 
     def collision_check_path(self, space, path):
         status = LocalPlannerStatus.TRAPPED
@@ -42,34 +45,40 @@ class LocalPlanner:
                 break
         return status, path[1:cnt]  # Dont include src
 
-    def generate_path(self, space, state_src, state_dst, max_distance):
+    def generate_path_for_collision_checking(self, space, state_src, state_dst, max_distance):
         distance_to_dst = space.distance(state_src, state_dst)
         if distance_to_dst < max_distance:
             # reachable
-            nr_points = int(max(distance_to_dst / self.min_path_distance, 2))
+            nr_points = int(max(distance_to_dst / self.min_path_distance + 1, 2))
             path = np.linspace(state_src, state_dst, nr_points)
         else:
             # need to point to
             alpha = max_distance / distance_to_dst
-            nr_points = int(max(max_distance / self.min_path_distance, 2))
+            nr_points = int(max(max_distance / self.min_path_distance + 1, 2))
             state_dst = state_src * (1 - alpha) + state_dst * alpha
             path = np.linspace(state_src, state_dst, nr_points)
         return path
 
+    def interpolate_path(self, validate_path):
+        return validate_path
+
 
 class LocalPlannerSpaceTime(LocalPlanner):
 
-    def __init__(self, max_actuation, *args, **kwargs):
+    def __init__(self, max_actuation, *args, nr_time_steps=3, **kwargs):
         super().__init__(*args, **kwargs)
         self.max_actuation = max_actuation
+        self.nr_time_steps = nr_time_steps
 
-    def generate_path(self, space, state_src, state_dst, max_distance):
+    def generate_path_for_collision_checking(self, space, state_src, state_dst, max_distance):
         max_actuation = self.max_actuation
         # TODO: think of a better way to do this...
         t_dst = state_dst[-1]
+        t_src = state_src[-1]
+        assert space.is_valid_time_direction(t_src, t_dst)
         if isinstance(max_distance, tuple):
             max_distance, max_time_horizon = max_distance
-            t_end = space.transition(t_dst, dt=max_time_horizon)
+            t_end = space.transition(t_src, dt=max_time_horizon)
         else:
             t_end = t_dst
         path = [state_src]
@@ -96,6 +105,13 @@ class LocalPlannerSpaceTime(LocalPlanner):
             if t_nxt == t_end:
                 break
         return np.vstack(path)
+
+    def interpolate_path(self, validate_path):
+        state_end = validate_path[-1, :]
+        new_path = validate_path[0::self.nr_time_steps]
+        if not (new_path[-1] != state_end).all():
+            new_path = np.vstack([new_path, state_end])
+        return new_path
 
 
 class RRTPlanner:
@@ -137,19 +153,23 @@ class RRTPlanner:
             # goal_region,
         )
         if local_path.size > 0:
-            state_new = local_path[-1]
-            _ = self.tree.append_vertex(state_new, i_parent=i_nearest)
-            if self.goal_region.is_within(state_new):
-                self.found_path = True
-                logger.debug("Found state in goal region!")
+            i_parent = i_nearest
+            for state_new in local_path:
+                i_parent = self.tree.append_vertex(state_new, i_parent=i_parent)
+                if self.goal_region.is_within(state_new):
+                    self.found_path = True
+                    logger.debug("Found state in goal region!")
+
+    def get_goal_state_index(self):
+        vertices = self.tree.get_vertices()
+        mask_vertices_goal = self.goal_region.mask_is_within(vertices)
+        i = mask_vertices_goal.nonzero()[0][0] if mask_vertices_goal.any() else None
+        return i
 
     def get_path(self):
         state_start, goal_region = self.state_start, self.goal_region
-        vertices = self.tree.get_vertices()
-        distances = np.linalg.norm(goal_region.state - vertices, axis=1)
-        mask_vertices_goal = distances < goal_region.radius
-        if mask_vertices_goal.any():
-            i = mask_vertices_goal.nonzero()[0][0]
+        i = self.get_goal_state_index()
+        if i is not None:
             path = self.tree.find_path_to_root_from_vertex_index(i)
             path = path[::-1]
         else:

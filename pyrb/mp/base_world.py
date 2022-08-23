@@ -90,7 +90,6 @@ class WorldData2D:
         self.y = Range(*ys)
 
 
-
 @dataclass
 class WorldData1D:
     x: Range
