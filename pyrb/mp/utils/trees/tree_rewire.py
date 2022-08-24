@@ -22,7 +22,9 @@ class TreeRewire(Tree):
         indxs_states_nearest = self.space.get_nearest_states_indices(
             states=self.get_vertices(), state=state, nearest_radius=self.nearest_radius
         )
-        indxs_states_nearest_coll_free = self.get_collision_free_nearest_indices(state, indxs_states_nearest)
+        indxs_states_nearest_coll_free = self.get_collision_free_nearest_indices(
+            state, indxs_states_nearest
+        )
         indxs_states_all_coll_free = np.append(indxs_states_nearest_coll_free, i_nearest)  # TODO: Not sure this is needed
         self.wire_new_through_nearest(state, indxs_states_all_coll_free)
         self.rewire_nearest_through_new(i_new, state, indxs_states_nearest_coll_free)

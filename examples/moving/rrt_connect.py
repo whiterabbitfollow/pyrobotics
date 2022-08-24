@@ -79,12 +79,12 @@ fig, ax = plt.subplots(1, 1, figsize=(10, 10))
 
 world.render_configuration_space(ax, time_horizon=TIME_HORIZON)
 
-for tree, color, lw in ((planner.tree_start, "blue", 4), (planner.tree_goal, "red", 2)):
+for tree, color, lw in ((planner.tree_start, "blue", 1), (planner.tree_goal, "red", 1)):
     vertices, edges = tree.get_vertices(), tree.get_edges()
     render_tree(ax, vertices, edges, color=color, lw=lw)
 
-# if path.size > 0:
-#     ax.plot(path[:, 0], path[:, 1], color="orange", label="path", lw=2, ls="--", marker=".")
+if path.size > 0:
+    ax.plot(path[:, 0], path[:, 1], color="orange", label="path", lw=2, ls="--", marker=".")
 
 goal_region_r = planner.goal_region.radius
 goal_region_xy_lower_corner = (goal_config[0] - goal_region_r, 0)

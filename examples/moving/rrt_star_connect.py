@@ -71,17 +71,23 @@ problem = PlanningProblem(
 
 goal_region = RealVectorTimeGoalRegion()
 state_start = np.append(world.robot.config, 0)
-goal_config = world.robot.goal_state
+goal_config = world.robot.goal_state # world.robot.config     #
 state_goal = np.append(goal_config, TIME_HORIZON)
 goal_region.set_goal_state(state_goal)
-
-fig, ax = plt.subplots(1, 1, figsize=(10, 10))
 
 path, status = problem.solve(
     state_start,
     goal_region,
-    min_planning_time=10
+    min_planning_time=np.inf,
+    max_iters=17
 )
+
+verts = tree_start.get_vertices()
+parents = verts[tree_start.get_edges(), :]
+
+
+fig, ax = plt.subplots(1, 1, figsize=(10, 10))
+
 
 # TODO: Could be the case that ingest to many states
 world.create_space_time_map(time_horizon=TIME_HORIZON)
@@ -90,6 +96,11 @@ world.render_configuration_space(ax, time_horizon=TIME_HORIZON)
 for tree, color, lw in ((planner.tree_start, "blue", 1), (planner.tree_goal, "red", 1)):
     vertices, edges = tree.get_vertices(), tree.get_edges()
     render_tree(ax, vertices, edges, color=color, lw=lw)
+
+
+
+
+
 
 if path.size > 0:
     ax.plot(path[:, 0], path[:, 1], color="orange", label="path", lw=2, ls="--", marker=".")
