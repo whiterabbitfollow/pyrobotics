@@ -8,7 +8,7 @@ def start_timer():
     return time_s, time_elapsed
 
 
-class Status:
+class ProblemStatus:
     SUCCESS = "success"
     FAILURE = "failure"
 
@@ -53,5 +53,5 @@ class PlanningProblem:
         )
 
     def compile_planning_data(self, path, time_elapsed, meta_data):
-        status = Status.SUCCESS if path.size else Status.FAILURE
+        status = ProblemStatus.SUCCESS if path.size else ProblemStatus.FAILURE
         return PlanningData(status=status, time_taken=time_elapsed, meta_data=meta_data)
