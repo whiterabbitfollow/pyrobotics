@@ -109,7 +109,7 @@ class LocalPlannerSpaceTime(LocalPlanner):
     def interpolate_path(self, validate_path):
         state_end = validate_path[-1, :]
         new_path = validate_path[0::self.nr_time_steps]
-        if not (new_path[-1] != state_end).all():
+        if (new_path[-1] != state_end).any():
             new_path = np.vstack([new_path, state_end])
         return new_path
 
@@ -164,7 +164,11 @@ class RRTPlanner:
     def get_goal_state_index(self):
         vertices = self.tree.get_vertices()
         mask_vertices_goal = self.goal_region.mask_is_within(vertices)
-        i = mask_vertices_goal.nonzero()[0][0] if mask_vertices_goal.any() else None
+        if mask_vertices_goal.any():
+            indices = mask_vertices_goal.nonzero()[0]
+            i = indices[np.argmin(self.tree.cost_to_verts[indices])]
+        else:
+            i = None
         return i
 
     def get_path(self):

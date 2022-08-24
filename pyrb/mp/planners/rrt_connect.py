@@ -93,17 +93,22 @@ class RRTConnectPlanner:
                 self.found_path = True
                 goal_head_indices_prune.append(i_state_goal)
             i_parent_a = i_state_new_a
-        all_path_indices = []
-        for i_prune in goal_head_indices_prune:
-            all_path_indices.extend(self.tree_goal.find_path_indices_to_root_from_vertex_index(i_prune))
-        all_path_indices = np.unique(all_path_indices)
-        self.tree_goal.prune_orphans(all_path_indices)
+        if goal_head_indices_prune:
+            all_path_indices = []
+            for i_prune in goal_head_indices_prune:
+                all_path_indices.extend(self.tree_goal.find_path_indices_to_root_from_vertex_index(i_prune))
+            all_path_indices = np.unique(all_path_indices)
+            self.tree_goal.prune_orphans(all_path_indices)
         self.tree_a, self.tree_b = self.swap_trees(self.tree_a, self.tree_b)
 
     def get_goal_state_index(self):
         vertices = self.tree_start.get_vertices()
         mask_vertices_goal = self.goal_region.mask_is_within(vertices)
-        i = mask_vertices_goal.nonzero()[0][0] if mask_vertices_goal.any() else None
+        if mask_vertices_goal.any():
+            indices = mask_vertices_goal.nonzero()[0]
+            i = indices[np.argmin(self.tree_start.cost_to_verts[indices])]
+        else:
+            i = None
         return i
 
     def get_path(self):
@@ -130,10 +135,12 @@ class RRTConnectPlanner:
         return tree_b, tree_a
 
     def ingest_path_from_tree_goal(self, i_state_start, i_state_goal):
+        space = self.space or self.tree_start.space
         path_state_to_goal = self.tree_goal.find_path_to_root_from_vertex_index(i_state_goal)
         i_parent = i_state_start
-        for state_new in path_state_to_goal[1:, :]:
-            i_parent = self.tree_start.append_vertex(state_new, i_parent=i_parent)
+        for state_old, state_new in zip(path_state_to_goal[:-1, :], path_state_to_goal[1:, :]):
+            edge_cost = space.distance(state_old, state_new)
+            i_parent = self.tree_start.append_vertex(state_new, i_parent=i_parent, edge_cost=edge_cost)
 
     def connect_trees(self, i_state_start,  i_state_goal):
         path_state_to_start = self.tree_start.find_path_to_root_from_vertex_index(i_state_start)
