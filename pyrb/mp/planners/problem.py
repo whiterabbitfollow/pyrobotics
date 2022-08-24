@@ -13,11 +13,6 @@ class Status:
     FAILURE = "failure"
 
 
-def compile_planning_data(path, time_elapsed, meta_data):
-    status = Status.SUCCESS if path.size else Status.FAILURE
-    return PlanningData(status=status, time_taken=time_elapsed, meta_data=meta_data)
-
-
 class PlanningData:
 
     def __init__(self, status, time_taken, meta_data):
@@ -53,5 +48,10 @@ class PlanningProblem:
             if iter_cnt > max_iters:
                 break
         path = self.planner.get_path()
-        return path, compile_planning_data(path, time_elapsed, self.planner.get_planning_meta_data())
+        return path, self.compile_planning_data(
+            path, time_elapsed, self.planner.get_planning_meta_data()
+        )
 
+    def compile_planning_data(self, path, time_elapsed, meta_data):
+        status = Status.SUCCESS if path.size else Status.FAILURE
+        return PlanningData(status=status, time_taken=time_elapsed, meta_data=meta_data)

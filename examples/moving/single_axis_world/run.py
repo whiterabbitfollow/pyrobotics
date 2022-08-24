@@ -1,10 +1,10 @@
 from matplotlib.patches import Rectangle
 
+from examples.moving.make import make_rrt, make_rrt_connect
 from examples.moving.moving_world import MovingBox1DimWorld
-from examples.utils import render_tree, plot_rrt_connect_planner_results
+from examples.utils import render_tree
 from pyrb.mp.planners.problem import PlanningProblem
-from pyrb.mp.planners.rrt_connect import RRTConnectPlanner
-from pyrb.mp.planners.rrt import LocalPlannerSpaceTime
+from pyrb.mp.planners.rrt import RRTPlanner, LocalPlannerSpaceTime
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -13,80 +13,69 @@ from matplotlib.patches import Polygon
 from pyrb.mp.utils.goal_regions import RealVectorTimeGoalRegion
 from pyrb.mp.utils.spaces import RealVectorTimeSpace, RealVectorPastTimeSpace
 from pyrb.mp.utils.trees.tree import Tree
-from pyrb.mp.utils.trees.tree_rewire import TreeRewireSpaceTime
 
 np.random.seed(14)  # Challenging, solvable with ~200 steps...
-PLANNING_TIME = 10
-TIME_HORIZON = 60
+
+
 
 world = MovingBox1DimWorld()
 world.reset()
 
+
+PLANNING_TIME = 10
+TIME_HORIZON = 60
+state_space = RealVectorTimeSpace(world, world.robot.nr_joints, world.robot.joint_limits, time_horizon=TIME_HORIZON)
+goal_region = RealVectorTimeGoalRegion()
 state_space_start = RealVectorTimeSpace(world, world.robot.nr_joints, world.robot.joint_limits, time_horizon=TIME_HORIZON)
-local_planner = LocalPlannerSpaceTime(
-    min_path_distance=0.2,
-    min_coll_step_size=0.05,
-    max_distance=(1.0, 5),
-    max_actuation=world.robot.max_actuation
-)
-
-tree_start = Tree(
-    space=state_space_start,
-    max_nr_vertices=int(1e4),
-    vertex_dim=state_space_start.dim
-)
-
-
 state_space_goal = RealVectorPastTimeSpace(world, world.robot.nr_joints, world.robot.joint_limits, time_horizon=TIME_HORIZON)
 
-tree_goal = Tree(
-    space=state_space_goal,
-    max_nr_vertices=int(1e4),
-    vertex_dim=state_space_goal.dim
-)
+planner_kwargs = [
+    ("rrt", make_rrt, {"state_space": state_space_start}),
+    ("rrt_connect", make_rrt_connect, {"state_space_start": state_space_start, "state_space_goal": state_space_goal})
+]
+planners = {}
+for planner_name, make_func, make_func_kwargs in planner_kwargs:
+    planner = make_func(world, **make_func_kwargs)
+    problem = PlanningProblem(
+        planner=planner
+    )
+    planners[planner_name] = problem
 
+planner_name = "rrt_connect"
+problem = planners[planner_name]
 
-planner = RRTConnectPlanner(
-    local_planner=local_planner,
-    tree_start=tree_start,
-    tree_goal=tree_goal
-)
-
-problem = PlanningProblem(
-    planner=planner
-)
-
-
-goal_region = RealVectorTimeGoalRegion()
 state_start = np.append(world.robot.config, 0)
 goal_config = world.robot.goal_state
 state_goal = np.append(goal_config, TIME_HORIZON)
 goal_region.set_goal_state(state_goal)
 
-
 path, status = problem.solve(
     state_start,
     goal_region,
-    min_planning_time=2,
-    max_planning_time=np.inf
+    min_planning_time=1,
+    max_planning_time=PLANNING_TIME
 )
 
-# # TODO: Could be the case that ingest to many states
-print(status.time_taken, status.status)
 
+# TODO: Could be the case that ingest to many states
+print(status.time_taken, status.status)
 world.create_space_time_map(time_horizon=TIME_HORIZON)
+
+
 fig, ax = plt.subplots(1, 1, figsize=(10, 10))
 
 world.render_configuration_space(ax, time_horizon=TIME_HORIZON)
 
-for tree, color, lw in ((planner.tree_start, "blue", 1), (planner.tree_goal, "red", 1)):
-    vertices, edges = tree.get_vertices(), tree.get_edges()
-    render_tree(ax, vertices, edges, color=color, lw=lw)
+tree = problem.planner.tree_start if "connect" in planner_name else problem.planner.tree
+color = "blue"
+verts, edges = tree.get_vertices(), tree.get_edges()
+
+render_tree(ax, verts, edges)
 
 if path.size > 0:
     ax.plot(path[:, 0], path[:, 1], color="orange", label="path", lw=2, ls="--", marker=".")
 
-goal_region_r = planner.goal_region.radius
+goal_region_r = goal_region.radius
 goal_region_xy_lower_corner = (goal_config[0] - goal_region_r, 0)
 
 ax.add_patch(
@@ -109,8 +98,5 @@ ax.add_patch(
     Polygon(polygon_values, alpha=0.1)
 )
 
-
-# render_tree(ax2, tree_start.get_vertices(), tree_start.get_edges())
-# render_tree(ax3, tree_goal.get_vertices(), tree_goal.get_edges())
-
 plt.show()
+

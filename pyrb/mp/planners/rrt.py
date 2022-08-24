@@ -155,7 +155,8 @@ class RRTPlanner:
         if local_path.size > 0:
             i_parent = i_nearest
             for state_new in local_path:
-                i_parent = self.tree.append_vertex(state_new, i_parent=i_parent)
+                edge_cost = self.space.distance(state_new, self.tree.vertices[i_parent])
+                i_parent = self.tree.append_vertex(state_new, i_parent=i_parent, edge_cost=edge_cost)
                 if self.goal_region.is_within(state_new):
                     self.found_path = True
                     logger.debug("Found state in goal region!")
@@ -177,6 +178,6 @@ class RRTPlanner:
         return path
 
     def get_planning_meta_data(self):
-        return {
-            "nr_verts": self.tree.vert_cnt
-        }
+        i = self.get_goal_state_index()
+        cost = self.tree.cost_to_verts[i] if i is not None else np.inf
+        return {"cost_best_path": cost}

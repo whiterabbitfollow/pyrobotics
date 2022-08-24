@@ -68,7 +68,8 @@ class RRTConnectPlanner:
         goal_head_indices_prune = []
         i_parent_a = i_nearest_a
         for state_new_a in local_path_a:
-            i_state_new_a = self.tree_a.append_vertex(state_new_a, i_parent=i_parent_a)
+            edge_cost_a = space.distance(state_new_a, self.tree_a.vertices[i_parent_a])
+            i_state_new_a = self.tree_a.append_vertex(state_new_a, i_parent=i_parent_a, edge_cost=edge_cost_a)
             space = self.space or self.tree_b.space
             i_nearest_b, state_nearest_b = space.find_nearest_state(self.tree_b.get_vertices(), state_new_a)
             if i_nearest_b is None or state_nearest_b is None:
@@ -81,8 +82,11 @@ class RRTConnectPlanner:
             )
             if status == LocalPlannerStatus.REACHED:
                 i_parent_b = i_nearest_b
+
                 for state_new_b in local_path_b:
-                    i_parent_b = self.tree_b.append_vertex(state_new_b, i_parent=i_parent_b)
+                    edge_cost_b = space.distance(state_new_b, self.tree_b.vertices[i_parent_b])
+                    i_parent_b = self.tree_b.append_vertex(state_new_b, i_parent=i_parent_b, edge_cost=edge_cost_b)
+
                 i_state_start, i_state_goal = self.sort_indices(self.tree_a, i_state_new_a, i_parent_b)
                 self.ingest_path_from_tree_goal(i_state_start, i_state_goal)
                 logger.debug("Connected path")
@@ -137,4 +141,6 @@ class RRTConnectPlanner:
         return np.vstack([path_state_to_start[::-1, :], path_state_to_goal[1:, :]])
 
     def get_planning_meta_data(self):
-        return {}
+        i = self.get_goal_state_index()
+        cost = self.tree_start.cost_to_verts[i] if i is not None else np.inf
+        return {"cost_best_path": cost}
