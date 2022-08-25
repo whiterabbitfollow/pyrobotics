@@ -26,7 +26,7 @@ class Tree:
         self.vertices[self.vert_cnt, :] = vertex
         self.vert_cnt += 1
 
-    def append_vertex(self, state, i_parent, edge_cost=1):
+    def append_vertex(self, state, i_parent, edge_cost):
         # TODO: need something like this, and propagate to children that it has changed..
         # mask = np.all(state == self.vertices[:self.vert_cnt], axis=1)
         # if mask.any():

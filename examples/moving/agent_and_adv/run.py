@@ -4,7 +4,7 @@ import tqdm
 from examples.moving.agent_and_adv.agent_n_adversary_world import AgentAdversary2DWorld
 from examples.moving.make import compile_all_planners
 from pyrb.mp.planners.problem import PlanningProblem
-from pyrb.mp.utils.goal_regions import RealVectorTimeGoalRegion
+from pyrb.mp.utils.goal_regions import RealVectorTimeGoalRegion, RealVectorMinimizingTimeGoalRegion
 from pyrb.mp.utils.spaces import RealVectorTimeSpace, RealVectorPastTimeSpace
 
 
@@ -13,20 +13,24 @@ from collections import defaultdict
 
 np.random.seed(6)  # Challenging, solvable with ~200 steps...
 PLANNING_TIME = 10
-TIME_HORIZON = 60
+TIME_HORIZON = 300
 
 world = AgentAdversary2DWorld()
 
 state_space_start = RealVectorTimeSpace(
-    world, world.robot.nr_joints, world.robot.joint_limits, time_horizon=TIME_HORIZON
+    world, world.robot.nr_joints, world.robot.joint_limits, max_time=TIME_HORIZON
 )
 state_space_goal = RealVectorPastTimeSpace(
-    world, world.robot.nr_joints, world.robot.joint_limits, time_horizon=TIME_HORIZON
+    world, world.robot.nr_joints, world.robot.joint_limits, max_time=TIME_HORIZON
 )
-goal_region = RealVectorTimeGoalRegion()
+# goal_region = RealVectorTimeGoalRegion()
+goal_region = RealVectorMinimizingTimeGoalRegion()
 
 planners = compile_all_planners(world, state_space_start, state_space_goal)
-stats = {planner_name:defaultdict(list) for planner_name in planners}
+
+planners = {name: planners[name] for name in ("rrt", )}
+
+stats = {planner_name: defaultdict(list) for planner_name in planners}
 
 for i in tqdm.tqdm(range(10)):
     world.reset()
@@ -35,20 +39,24 @@ for i in tqdm.tqdm(range(10)):
     state_goal = np.append(goal_config, TIME_HORIZON)
     goal_region.set_goal_state(state_goal)
     for planner_name, planner in planners.items():
+
         problem = PlanningProblem(planner)
         path, status = problem.solve(
             state_start,
             goal_region,
-            max_planning_time=PLANNING_TIME
+            max_planning_time=PLANNING_TIME,
+            min_planning_time=5
         )
+
         stats[planner_name]["success"].append(status.status == "success")
         stats[planner_name]["time_elapsed"].append(status.time_taken)
         stats[planner_name]["path_cost"].append(status.meta_data["cost_best_path"])
+        stats[planner_name]["path_len"].append(path.shape[0])
 
 
 for planner_name in stats:
     print(planner_name)
-    for stat_name in ("success", "time_elapsed", "path_cost"):
+    for stat_name in ("success", "time_elapsed", "path_cost", "path_len"):
         vals = np.array(stats[planner_name][stat_name])
         vals_finite = vals[np.isfinite(vals)]
         print(stat_name, np.mean(vals_finite))

@@ -7,7 +7,9 @@ from pyrb.mp.utils.trees.tree_rewire import TreeRewireSpaceTime
 def compile_all_planners(world, state_space_start, state_space_goal):
     planner_kwargs = [
         ("rrt", make_rrt, {"state_space": state_space_start}),
-        ("rrt_connect", make_rrt_connect, {"state_space_start": state_space_start, "state_space_goal": state_space_goal})
+        ("rrt_star", make_rrt_star, {"state_space": state_space_start}),
+        ("rrt_connect", make_rrt_connect, {"state_space_start": state_space_start, "state_space_goal": state_space_goal}),
+        ("rrt_star_connect_partial", make_rrt_star_connect_partial, {"state_space_start": state_space_start, "state_space_goal": state_space_goal})
     ]
     planners = {}
     for planner_name, make_func, make_func_kwargs in planner_kwargs:
@@ -105,6 +107,37 @@ def make_rrt_star_connect(world, state_space_start, state_space_goal):
         nearest_radius=.2,
         nearest_time_window=10,
         space=state_space_goal
+    )
+
+    planner = RRTConnectPlanner(
+        local_planner=local_planner,
+        tree_start=tree_start,
+        tree_goal=tree_goal
+    )
+
+    return planner
+
+
+def make_rrt_star_connect_partial(world, state_space_start, state_space_goal):
+    local_planner = LocalPlannerSpaceTime(
+        min_path_distance=0.2,
+        min_coll_step_size=0.05,
+        max_distance=(1.0, 5),
+        max_actuation=world.robot.max_actuation
+    )
+
+    tree_start = TreeRewireSpaceTime(
+        local_planner=local_planner,
+        max_nr_vertices=int(1e3),
+        nearest_radius=.2,
+        nearest_time_window=10,
+        space=state_space_start
+    )
+
+    tree_goal = Tree(
+        space=state_space_goal,
+        max_nr_vertices=int(1e4),
+        vertex_dim=state_space_goal.dim
     )
 
     planner = RRTConnectPlanner(

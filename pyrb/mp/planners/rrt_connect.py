@@ -68,7 +68,7 @@ class RRTConnectPlanner:
         goal_head_indices_prune = []
         i_parent_a = i_nearest_a
         for state_new_a in local_path_a:
-            edge_cost_a = space.distance(state_new_a, self.tree_a.vertices[i_parent_a])
+            edge_cost_a = space.transition_cost(state_new_a, self.tree_a.vertices[i_parent_a])
             i_state_new_a = self.tree_a.append_vertex(state_new_a, i_parent=i_parent_a, edge_cost=edge_cost_a)
             space = self.space or self.tree_b.space
             i_nearest_b, state_nearest_b = space.find_nearest_state(self.tree_b.get_vertices(), state_new_a)
@@ -84,7 +84,7 @@ class RRTConnectPlanner:
                 i_parent_b = i_nearest_b
 
                 for state_new_b in local_path_b:
-                    edge_cost_b = space.distance(state_new_b, self.tree_b.vertices[i_parent_b])
+                    edge_cost_b = space.transition_cost(state_new_b, self.tree_b.vertices[i_parent_b])
                     i_parent_b = self.tree_b.append_vertex(state_new_b, i_parent=i_parent_b, edge_cost=edge_cost_b)
 
                 i_state_start, i_state_goal = self.sort_indices(self.tree_a, i_state_new_a, i_parent_b)
@@ -139,7 +139,7 @@ class RRTConnectPlanner:
         path_state_to_goal = self.tree_goal.find_path_to_root_from_vertex_index(i_state_goal)
         i_parent = i_state_start
         for state_old, state_new in zip(path_state_to_goal[:-1, :], path_state_to_goal[1:, :]):
-            edge_cost = space.distance(state_old, state_new)
+            edge_cost = space.transition_cost(state_old, state_new)
             i_parent = self.tree_start.append_vertex(state_new, i_parent=i_parent, edge_cost=edge_cost)
 
     def connect_trees(self, i_state_start,  i_state_goal):

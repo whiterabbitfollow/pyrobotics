@@ -37,18 +37,23 @@ class RealVectorStateSpace:
     def distances(self, state, *, states):
         return np.linalg.norm(state - states, axis=1)
 
+    def transition_cost(self, state_1, state_2):
+        return self.distance(state_1, state_2)
+
+
 
 class RealVectorTimeSpace:
 
     # (R^n, R_+)
     # Time flows forward
 
-    def __init__(self, world, dim, limits, time_horizon):
+    def __init__(self, world, dim, limits, max_time, goal_region=None):
         self.world = world
         self.dim = dim + 1
         self.limits = limits
-        self.time_horizon = time_horizon
+        self.max_time = max_time
         self.max_actuation = world.robot.max_actuation
+        self.goal_region = goal_region
 
     def find_nearest_state(self, states, state):
         t = state[-1]
@@ -68,8 +73,11 @@ class RealVectorTimeSpace:
         raise NotImplementedError()
 
     def sample_collision_free_state(self):
+        time_horizon = self.max_time
+        if self.goal_region is not None and np.isfinite(self.goal_region.time_horizon):
+            time_horizon = self.goal_region
         while True:
-            t = np.random.randint(1, self.time_horizon)
+            t = np.random.randint(1, time_horizon)
             # TODO: should constrain sampling based on t... actuation etc.
             config = np.random.uniform(self.limits[:, 0], self.limits[:, 1])
             state = np.append(config, t)
@@ -83,7 +91,7 @@ class RealVectorTimeSpace:
         return np.linalg.norm(state[:-1] - states[:, :-1], axis=1)
 
     def transition(self, t, dt=1):
-        return min(t + dt, self.time_horizon)
+        return min(t + dt, self.max_time)
 
     def detransition(self, t, dt=1):
         return max(t - dt, 0)
@@ -108,17 +116,44 @@ class RealVectorTimeSpace:
     def is_valid_time_direction(self, t_src, t_dst):
         return t_dst > t_src
 
+    def transition_cost(self, state_src, state_dst, gamma=0.1):
+        if self.goal_region and self.goal_region.is_config_within(state_dst):
+            return 0
+        nr_time_steps = np.abs(state_dst[-1] - state_src[-1])
+        distance = np.linalg.norm(state_src[:-1] - state_dst[:-1])
+        cost = distance + nr_time_steps * gamma
+        return cost
+
+    def transition_cost_src_many(self, states_src, state_dst, gamma=0.1):
+        if self.goal_region and self.goal_region.is_config_within(state_dst):
+            return np.zeros(states_src.shape[0])
+        nr_time_steps = np.abs(state_dst[-1] - states_src[:, -1])
+        distances = np.linalg.norm(states_src[:, :-1] - state_dst[:-1], axis=1)
+        costs = distances + nr_time_steps * gamma
+        return costs
+
+    def transition_cost_dst_many(self, state_src, states_dst, gamma=0.1):
+        n = states_dst.shape[0]
+        mask_within = self.goal_region.are_configs_within(states_dst) if self.goal_region else np.zeros(n).astype(bool)
+        mask = ~mask_within
+        nr_time_steps = np.abs(states_dst[mask, -1] - state_src[-1])
+        distances = np.linalg.norm(state_src[:-1] - states_dst[mask, :-1], axis=1)
+        costs = np.zeros(n)
+        costs[mask] = distances + nr_time_steps * gamma
+        return costs
+
 
 
 class RealVectorPastTimeSpace(RealVectorTimeSpace):
     # (R^n, R_+)
     # Time flows backwards
-    def __init__(self, world, dim, limits, time_horizon):
+    def __init__(self, world, dim, limits, max_time, goal_region=None):
         self.world = world
         self.dim = dim + 1
         self.limits = limits
-        self.time_horizon = time_horizon
+        self.max_time = max_time
         self.max_actuation = world.robot.max_actuation
+        self.goal_region = goal_region
 
     def find_nearest_state(self, states, state):
         t = state[-1]
@@ -138,7 +173,7 @@ class RealVectorPastTimeSpace(RealVectorTimeSpace):
         return max(t - dt, 0)
 
     def detransition(self, t, dt=1):
-        return min(t + dt, self.time_horizon)
+        return min(t + dt, self.max_time)
 
     def is_valid_time_direction(self, t_src, t_dst):
         return t_dst < t_src

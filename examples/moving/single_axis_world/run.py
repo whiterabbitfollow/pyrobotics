@@ -1,6 +1,6 @@
 from matplotlib.patches import Rectangle
 
-from examples.moving.make import make_rrt, make_rrt_connect
+from examples.moving.make import make_rrt, make_rrt_connect, compile_all_planners
 from examples.moving.moving_world import MovingBox1DimWorld
 from examples.utils import render_tree
 from pyrb.mp.planners.problem import PlanningProblem
@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 
 from matplotlib.patches import Polygon
 
-from pyrb.mp.utils.goal_regions import RealVectorTimeGoalRegion
+from pyrb.mp.utils.goal_regions import RealVectorTimeGoalRegion, RealVectorMinimizingTimeGoalRegion
 from pyrb.mp.utils.spaces import RealVectorTimeSpace, RealVectorPastTimeSpace
 from pyrb.mp.utils.trees.tree import Tree
 
@@ -24,25 +24,17 @@ world.reset()
 
 PLANNING_TIME = 10
 TIME_HORIZON = 60
-state_space = RealVectorTimeSpace(world, world.robot.nr_joints, world.robot.joint_limits, time_horizon=TIME_HORIZON)
-goal_region = RealVectorTimeGoalRegion()
-state_space_start = RealVectorTimeSpace(world, world.robot.nr_joints, world.robot.joint_limits, time_horizon=TIME_HORIZON)
-state_space_goal = RealVectorPastTimeSpace(world, world.robot.nr_joints, world.robot.joint_limits, time_horizon=TIME_HORIZON)
+state_space = RealVectorTimeSpace(world, world.robot.nr_joints, world.robot.joint_limits, max_time=TIME_HORIZON)
+# goal_region = RealVectorTimeGoalRegion()
+goal_region = RealVectorMinimizingTimeGoalRegion()
 
-planner_kwargs = [
-    ("rrt", make_rrt, {"state_space": state_space_start}),
-    ("rrt_connect", make_rrt_connect, {"state_space_start": state_space_start, "state_space_goal": state_space_goal})
-]
-planners = {}
-for planner_name, make_func, make_func_kwargs in planner_kwargs:
-    planner = make_func(world, **make_func_kwargs)
-    problem = PlanningProblem(
-        planner=planner
-    )
-    planners[planner_name] = problem
+state_space_start = RealVectorTimeSpace(world, world.robot.nr_joints, world.robot.joint_limits, max_time=TIME_HORIZON)
+state_space_goal = RealVectorPastTimeSpace(world, world.robot.nr_joints, world.robot.joint_limits, max_time=TIME_HORIZON)
 
-planner_name = "rrt_connect"
-problem = planners[planner_name]
+planner_name = "rrt_star"
+planners = compile_all_planners(world, state_space_start, state_space_goal)
+planner = planners[planner_name]
+problem = PlanningProblem(planner)
 
 state_start = np.append(world.robot.config, 0)
 goal_config = world.robot.goal_state

@@ -16,7 +16,7 @@ class TreeRewire(Tree):
     def append_vertex_without_rewiring(self, state, i_parent, edge_cost=None):
         super().append_vertex(state, i_parent, edge_cost=edge_cost)
 
-    def append_vertex(self, state, i_parent, edge_cost=None):
+    def append_vertex(self, state, i_parent, edge_cost):
         i_new = self.vert_cnt
         i_nearest = i_parent
         indxs_states_nearest = self.space.get_nearest_states_indices(
@@ -50,7 +50,7 @@ class TreeRewire(Tree):
 
     def find_nearest_indx_with_shortest_path(self, indxs_states_nearest_coll_free, state_new):
         states_nearest = self.vertices[indxs_states_nearest_coll_free]
-        edge_costs = self.space.distances(state_new, states=states_nearest)
+        edge_costs = self.space.transition_cost_dst_many(state_new, states_nearest)
         total_cost_to_new_through_nearest = self.cost_to_verts[indxs_states_nearest_coll_free] + edge_costs
         best_indx_in_subset = np.argmin(total_cost_to_new_through_nearest)
         best_indx = indxs_states_nearest_coll_free[best_indx_in_subset]
@@ -59,7 +59,7 @@ class TreeRewire(Tree):
 
     def rewire_nearest_through_new(self, i_new, state_new, indxs_states_nearest_coll_free):
         states_nearest = self.vertices[indxs_states_nearest_coll_free]
-        edge_costs = self.space.distances(state_new, states=states_nearest)
+        edge_costs = self.space.transition_cost_src_many(states_nearest, state_new)
         cost_through_new = self.cost_to_verts[i_new] + edge_costs
         old_costs = self.cost_to_verts[indxs_states_nearest_coll_free]
         indxs_rewire = indxs_states_nearest_coll_free[cost_through_new < old_costs]
