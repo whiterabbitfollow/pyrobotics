@@ -14,6 +14,7 @@ class Tree:
     def clear(self):
         self.vertices.fill(0)
         self.edges_child_to_parent.fill(0)
+        self.cost_to_verts.fill(0)
         self.vert_cnt = 0
 
     def set_cost_from_parent(self, i_parent, i_child, edge_cost):

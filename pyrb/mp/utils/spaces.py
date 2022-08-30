@@ -75,9 +75,9 @@ class RealVectorTimeSpace:
     def sample_collision_free_state(self):
         time_horizon = self.max_time
         if self.goal_region is not None and np.isfinite(self.goal_region.time_horizon):
-            time_horizon = self.goal_region
+            time_horizon = self.goal_region.time_horizon
         while True:
-            t = np.random.randint(1, time_horizon)
+            t = np.random.randint(1, time_horizon + 1)
             # TODO: should constrain sampling based on t... actuation etc.
             config = np.random.uniform(self.limits[:, 0], self.limits[:, 1])
             state = np.append(config, t)

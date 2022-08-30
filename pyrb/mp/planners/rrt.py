@@ -156,8 +156,10 @@ class RRTPlanner:
             i_parent = i_nearest
             for state_new in local_path:
                 edge_cost = self.space.transition_cost(state_new, self.tree.vertices[i_parent])
-                if not self.tree.is_full():
-                    i_parent = self.tree.append_vertex(state_new, i_parent=i_parent, edge_cost=edge_cost)
+                if self.can_run():
+                    i_parent = self.tree.append_vertex(
+                        state_new, i_parent=i_parent, edge_cost=edge_cost
+                    )
                     if self.goal_region.is_within(state_new):
                         self.found_path = True
                         logger.debug("Found state in goal region!")
