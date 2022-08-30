@@ -18,7 +18,7 @@ def compile_all_planners(world, state_space_start, state_space_goal):
     return planners
 
 
-def make_rrt(world, state_space):
+def make_rrt(world, state_space, max_nr_vertices=int(1e4)):
     local_planner = LocalPlannerSpaceTime(
         min_path_distance=0.2,
         min_coll_step_size=0.05,
@@ -27,7 +27,7 @@ def make_rrt(world, state_space):
     )
     planner = RRTPlanner(
         space=state_space,
-        tree=Tree(max_nr_vertices=int(1e4), vertex_dim=state_space.dim),
+        tree=Tree(max_nr_vertices=max_nr_vertices, vertex_dim=state_space.dim),
         local_planner=local_planner
     )
     return planner
