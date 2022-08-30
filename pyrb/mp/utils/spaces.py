@@ -40,6 +40,11 @@ class RealVectorStateSpace:
     def transition_cost(self, state_1, state_2):
         return self.distance(state_1, state_2)
 
+    def transition_cost_dst_many(self, state_src, states_dst):
+        return np.linalg.norm(state_src - states_dst, axis=1)
+
+    def transition_cost_src_many(self, states_src, state_dst):
+        return np.linalg.norm(states_src - state_dst, axis=1)
 
 
 class RealVectorTimeSpace:

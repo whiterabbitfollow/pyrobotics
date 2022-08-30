@@ -27,6 +27,9 @@ class PlanningProblem:
         self.planner = planner
         self.debug = debug
 
+    def set_planner(self, planner):
+        self.planner = planner
+
     def solve(self, state_start, goal_region, max_planning_time=np.inf, min_planning_time=0, max_iters=np.inf):
         time_s, time_elapsed = start_timer()
         self.planner.clear()

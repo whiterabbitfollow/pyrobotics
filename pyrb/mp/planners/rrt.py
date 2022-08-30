@@ -150,7 +150,6 @@ class RRTPlanner:
             self.space,
             state_nearest,
             state_free
-            # goal_region,
         )
         if local_path.size > 0:
             i_parent = i_nearest

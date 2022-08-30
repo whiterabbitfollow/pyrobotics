@@ -17,46 +17,49 @@ TIME_HORIZON = 300
 
 world = AgentAdversary2DWorld()
 
+goal_region = RealVectorMinimizingTimeGoalRegion()
+
 state_space_start = RealVectorTimeSpace(
-    world, world.robot.nr_joints, world.robot.joint_limits, max_time=TIME_HORIZON
+    world, world.robot.nr_joints, world.robot.joint_limits, max_time=TIME_HORIZON, goal_region=goal_region
 )
 state_space_goal = RealVectorPastTimeSpace(
-    world, world.robot.nr_joints, world.robot.joint_limits, max_time=TIME_HORIZON
+    world, world.robot.nr_joints, world.robot.joint_limits, max_time=TIME_HORIZON, goal_region=goal_region
 )
 # goal_region = RealVectorTimeGoalRegion()
-goal_region = RealVectorMinimizingTimeGoalRegion()
+
 
 planners = compile_all_planners(world, state_space_start, state_space_goal)
 
-planners = {name: planners[name] for name in ("rrt", )}
+planners = {name: planners[name] for name in ("rrt", "rrt_star")}
 
 stats = {planner_name: defaultdict(list) for planner_name in planners}
+
+problem = PlanningProblem(None)
 
 for i in tqdm.tqdm(range(10)):
     world.reset()
     state_start = np.append(world.robot.config, 0)
     goal_config = world.robot.goal_state
     state_goal = np.append(goal_config, TIME_HORIZON)
-    goal_region.set_goal_state(state_goal)
     for planner_name, planner in planners.items():
-
-        problem = PlanningProblem(planner)
+        problem.set_planner(planner)
+        goal_region.set_goal_state(state_goal)
         path, status = problem.solve(
             state_start,
             goal_region,
-            max_planning_time=PLANNING_TIME,
-            min_planning_time=5
+            min_planning_time=PLANNING_TIME,
+            max_planning_time=PLANNING_TIME
         )
-
         stats[planner_name]["success"].append(status.status == "success")
         stats[planner_name]["time_elapsed"].append(status.time_taken)
         stats[planner_name]["path_cost"].append(status.meta_data["cost_best_path"])
-        stats[planner_name]["path_len"].append(path.shape[0])
+        stats[planner_name]["path_len"].append(path.shape[0] if path.shape[0] else np.inf)
+        stats[planner_name]["path_time_horizon"].append(path[-1, -1] if path.size else np.inf)
 
 
 for planner_name in stats:
     print(planner_name)
-    for stat_name in ("success", "time_elapsed", "path_cost", "path_len"):
+    for stat_name in ("success", "time_elapsed", "path_cost", "path_len", "path_time_horizon"):
         vals = np.array(stats[planner_name][stat_name])
         vals_finite = vals[np.isfinite(vals)]
         print(stat_name, np.mean(vals_finite))
