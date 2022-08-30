@@ -36,9 +36,10 @@ planner = RRTPlanner(
     tree=TreeRewire(
         local_planner=local_planner,
         space=state_space,
-        nearest_radius=1.0,
+        nearest_radius=0.5,
         max_nr_vertices=int(1e4)
-    )
+    ),
+    local_planner=local_planner
 )
 
 problem = PlanningProblem(
