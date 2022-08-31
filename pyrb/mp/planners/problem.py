@@ -30,9 +30,18 @@ class PlanningProblem:
     def set_planner(self, planner):
         self.planner = planner
 
-    def solve(self, state_start, goal_region, max_planning_time=np.inf, min_planning_time=0, max_iters=np.inf):
+    def solve(
+            self,
+            state_start,
+            goal_region,
+            max_planning_time=np.inf,
+            min_planning_time=0,
+            max_iters=np.inf,
+            clear=True
+    ):
         time_s, time_elapsed = start_timer()
-        self.planner.clear()
+        if clear:
+            self.planner.clear()
         self.planner.initialize_planner(state_start, goal_region)
         iter_cnt = 0
         while (

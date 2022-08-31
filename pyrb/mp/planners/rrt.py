@@ -15,10 +15,10 @@ class LocalPlanner:
         self.min_coll_step_size = min_coll_step_size
         self.max_distance = max_distance
 
-    def plan(self, space, state_src, state_dst, max_distance=None):
+    def plan(self, space, state_src, state_dst, max_distance=None, goal_region=None):
         # assumes state_src is collision free
         max_distance = max_distance or self.max_distance
-        coll_path = self.generate_path_for_collision_checking(space, state_src, state_dst, max_distance)
+        coll_path = self.generate_path_for_collision_checking(space, state_src, state_dst, max_distance, goal_region)
         status, validated_path = self.collision_check_path(space, coll_path)
         if validated_path.size:
             path = self.interpolate_path(validated_path)
@@ -45,7 +45,7 @@ class LocalPlanner:
                 break
         return status, path[1:cnt]  # Dont include src
 
-    def generate_path_for_collision_checking(self, space, state_src, state_dst, max_distance):
+    def generate_path_for_collision_checking(self, space, state_src, state_dst, max_distance, goal_region=None):
         distance_to_dst = space.distance(state_src, state_dst)
         if distance_to_dst < max_distance:
             # reachable
@@ -70,7 +70,7 @@ class LocalPlannerSpaceTime(LocalPlanner):
         self.max_actuation = max_actuation
         self.nr_time_steps = nr_time_steps
 
-    def generate_path_for_collision_checking(self, space, state_src, state_dst, max_distance):
+    def generate_path_for_collision_checking(self, space, state_src, state_dst, max_distance, goal_region=None):
         max_actuation = self.max_actuation
         # TODO: think of a better way to do this...
         t_dst = state_dst[-1]
@@ -97,18 +97,14 @@ class LocalPlannerSpaceTime(LocalPlanner):
             state_nxt = np.append(config_nxt, t_nxt)
             path.append(state_nxt)
             state_prev = state_nxt
-            # is_in_global_goal = state_global_goal is not None and is_vertex_in_goal_region(
-            #     config_nxt,
-            #     state_global_goal[:-1],
-            #     self.global_goal_region_radius
-            # ) and t_nxt == state_global_goal[-1]
-            if t_nxt == t_end:
+            is_in_global_goal = goal_region is not None and goal_region.is_within(state_nxt)
+            if t_nxt == t_end or is_in_global_goal:
                 break
         return np.vstack(path)
 
     def interpolate_path(self, validate_path):
         state_end = validate_path[-1, :]
-        new_path = validate_path[0::self.nr_time_steps]
+        new_path = validate_path[::self.nr_time_steps]
         if (new_path[-1] != state_end).any():
             new_path = np.vstack([new_path, state_end])
         return new_path
@@ -149,13 +145,14 @@ class RRTPlanner:
         status, local_path = self.local_planner.plan(
             self.space,
             state_nearest,
-            state_free
+            state_free,
+            goal_region=self.goal_region
         )
         if local_path.size > 0:
             i_parent = i_nearest
             for state_new in local_path:
                 edge_cost = self.space.transition_cost(state_new, self.tree.vertices[i_parent])
-                if self.can_run():
+                if self.can_run() and not self.tree.vertex_exists(state_new):
                     i_parent = self.tree.append_vertex(
                         state_new, i_parent=i_parent, edge_cost=edge_cost
                     )
@@ -168,7 +165,8 @@ class RRTPlanner:
         mask_vertices_goal = self.goal_region.mask_is_within(vertices)
         if mask_vertices_goal.any():
             indices = mask_vertices_goal.nonzero()[0]
-            i = indices[np.argmin(self.tree.cost_to_verts[indices])]
+            costs = self.tree.cost_to_verts[indices]
+            i = indices[np.argmin(costs)]
         else:
             i = None
         return i

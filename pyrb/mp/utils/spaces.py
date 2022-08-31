@@ -52,13 +52,15 @@ class RealVectorTimeSpace:
     # (R^n, R_+)
     # Time flows forward
 
-    def __init__(self, world, dim, limits, max_time, goal_region=None):
+    def __init__(self, world, dim, limits, max_time, goal_region=None, min_time=0, gamma=0.1):
         self.world = world
         self.dim = dim + 1
         self.limits = limits
         self.max_time = max_time
         self.max_actuation = world.robot.max_actuation
         self.goal_region = goal_region
+        self.min_time = min_time
+        self.gamma = gamma
 
     def find_nearest_state(self, states, state):
         t = state[-1]
@@ -68,8 +70,8 @@ class RealVectorTimeSpace:
         if mask_valid_states.any():
             gamma = 0.1
             states_valid = states[mask_valid_states]
-            distance = np.linalg.norm(states_valid[:, :-1] - config, axis=1) + (t - states_valid[:, -1]) * gamma
-            i_vert_mask = np.argmin(distance)
+            distances = np.linalg.norm(states_valid[:, :-1] - config, axis=1) + (t - states_valid[:, -1]) * gamma
+            i_vert_mask = np.argmin(distances)
             i_state_nearest = mask_valid_states.nonzero()[0][i_vert_mask]
             state_nearest = states[i_state_nearest]
         return i_state_nearest, state_nearest
@@ -82,7 +84,7 @@ class RealVectorTimeSpace:
         if self.goal_region is not None and np.isfinite(self.goal_region.time_horizon):
             time_horizon = self.goal_region.time_horizon
         while True:
-            t = np.random.randint(1, time_horizon + 1)
+            t = np.random.randint(self.min_time + 1, time_horizon + 1)
             # TODO: should constrain sampling based on t... actuation etc.
             config = np.random.uniform(self.limits[:, 0], self.limits[:, 1])
             state = np.append(config, t)
@@ -121,30 +123,30 @@ class RealVectorTimeSpace:
     def is_valid_time_direction(self, t_src, t_dst):
         return t_dst > t_src
 
-    def transition_cost(self, state_src, state_dst, gamma=0.1):
+    def transition_cost(self, state_src, state_dst):
+        nr_time_steps = np.abs(state_dst[-1] - state_src[-1]) * self.gamma
         if self.goal_region and self.goal_region.is_config_within(state_dst):
-            return 0
-        nr_time_steps = np.abs(state_dst[-1] - state_src[-1])
+            return nr_time_steps
         distance = np.linalg.norm(state_src[:-1] - state_dst[:-1])
-        cost = distance + nr_time_steps * gamma
+        cost = distance + nr_time_steps
         return cost
 
-    def transition_cost_src_many(self, states_src, state_dst, gamma=0.1):
+    def transition_cost_src_many(self, states_src, state_dst):
+        nr_time_steps = np.abs(state_dst[-1] - states_src[:, -1]) * self.gamma
         if self.goal_region and self.goal_region.is_config_within(state_dst):
-            return np.zeros(states_src.shape[0])
-        nr_time_steps = np.abs(state_dst[-1] - states_src[:, -1])
+            return nr_time_steps
         distances = np.linalg.norm(states_src[:, :-1] - state_dst[:-1], axis=1)
-        costs = distances + nr_time_steps * gamma
+        costs = distances + nr_time_steps
         return costs
 
-    def transition_cost_dst_many(self, state_src, states_dst, gamma=0.1):
+    def transition_cost_dst_many(self, state_src, states_dst):
         n = states_dst.shape[0]
         mask_within = self.goal_region.are_configs_within(states_dst) if self.goal_region else np.zeros(n).astype(bool)
         mask = ~mask_within
-        nr_time_steps = np.abs(states_dst[mask, -1] - state_src[-1])
+        nr_time_steps = np.abs(states_dst[:, -1] - state_src[-1]) * self.gamma
         distances = np.linalg.norm(state_src[:-1] - states_dst[mask, :-1], axis=1)
-        costs = np.zeros(n)
-        costs[mask] = distances + nr_time_steps * gamma
+        costs = nr_time_steps
+        costs[mask] += distances
         return costs
 
 
@@ -152,13 +154,15 @@ class RealVectorTimeSpace:
 class RealVectorPastTimeSpace(RealVectorTimeSpace):
     # (R^n, R_+)
     # Time flows backwards
-    def __init__(self, world, dim, limits, max_time, goal_region=None):
+    def __init__(self, world, dim, limits, max_time, goal_region=None, min_time=0, gamma = .1):
         self.world = world
         self.dim = dim + 1
         self.limits = limits
         self.max_time = max_time
+        self.min_time = min_time
         self.max_actuation = world.robot.max_actuation
         self.goal_region = goal_region
+        self.gamma = gamma
 
     def find_nearest_state(self, states, state):
         t = state[-1]
