@@ -8,14 +8,24 @@ from pyrb.mp.utils.trees.tree import Tree
 tree = Tree(max_nr_vertices=10, vertex_dim=2)
 
 tree.add_vertex(np.array([0, 0]))                       # 0
-tree.append_vertex(np.array([0.0, 0.1]), i_parent=0)    # 1
-tree.append_vertex(np.array([0.0, 0.2]), i_parent=1)    # 2
-tree.append_vertex(np.array([0.1, 0.3]), i_parent=2)    # 3
-tree.append_vertex(np.array([0.1, 0.4]), i_parent=3)    # 4
-tree.append_vertex(np.array([-0.1, 0.3]), i_parent=2)    # 5
-tree.append_vertex(np.array([-0.1, 0.4]), i_parent=5)    # 6
-tree.append_vertex(np.array([0.1, 0.2]), i_parent=1)    # 6
-tree.append_vertex(np.array([-0.1, 0.2]), i_parent=1)    # 6
+
+data = [
+    ([0.0, 0.1], 0),
+    ([0.0, 0.2], 1),
+    ([0.1, 0.3], 2),
+    ([0.1, 0.4], 3),
+    ([-0.1, 0.3], 2),
+    ([-0.1, 0.4], 5),
+    ([0.1, 0.2], 1),
+    ([-0.1, 0.2], 1)
+]
+
+
+for v, i_parent in data:
+    vertex = np.array(v)
+    edge_cost = np.linalg.norm(tree.vertices[i_parent, :] - vertex)
+    tree.append_vertex(vertex, i_parent=i_parent, edge_cost=edge_cost)
+
 
 fig, (ax1, ax2) = plt.subplots(1, 2)
 

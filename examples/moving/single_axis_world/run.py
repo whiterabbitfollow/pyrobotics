@@ -24,14 +24,25 @@ world.reset()
 
 PLANNING_TIME = 10
 TIME_HORIZON = 60
-state_space = RealVectorTimeSpace(world, world.robot.nr_joints, world.robot.joint_limits, max_time=TIME_HORIZON)
-# goal_region = RealVectorTimeGoalRegion()
-goal_region = RealVectorMinimizingTimeGoalRegion()
 
-state_space_start = RealVectorTimeSpace(world, world.robot.nr_joints, world.robot.joint_limits, max_time=TIME_HORIZON)
-state_space_goal = RealVectorPastTimeSpace(world, world.robot.nr_joints, world.robot.joint_limits, max_time=TIME_HORIZON)
+#
+# 1.04719755
 
-planner_name = "rrt_star"
+# goal_region = RealVectorMinimizingTimeGoalRegion()
+goal_region = RealVectorTimeGoalRegion()
+
+state_space = RealVectorTimeSpace(
+    world, world.robot.nr_joints, world.robot.joint_limits, max_time=TIME_HORIZON, goal_region=goal_region
+)
+
+state_space_start = RealVectorTimeSpace(
+    world, world.robot.nr_joints, world.robot.joint_limits, max_time=TIME_HORIZON, goal_region=goal_region
+)
+state_space_goal = RealVectorPastTimeSpace(
+    world, world.robot.nr_joints, world.robot.joint_limits, max_time=TIME_HORIZON, goal_region=goal_region
+)
+
+planner_name = "rrt_connect"
 planners = compile_all_planners(world, state_space_start, state_space_goal)
 planner = planners[planner_name]
 problem = PlanningProblem(planner)
@@ -41,28 +52,29 @@ goal_config = world.robot.goal_state
 state_goal = np.append(goal_config, TIME_HORIZON)
 goal_region.set_goal_state(state_goal)
 
-path, status = problem.solve(
+
+path, data = problem.solve(
     state_start,
     goal_region,
-    min_planning_time=1,
-    max_planning_time=PLANNING_TIME
+    min_planning_time=0,
+    max_planning_time=10
 )
 
-
-# TODO: Could be the case that ingest to many states
-print(status.time_taken, status.status)
-world.create_space_time_map(time_horizon=TIME_HORIZON)
-
-
 fig, ax = plt.subplots(1, 1, figsize=(10, 10))
-
+world.create_space_time_map(time_horizon=TIME_HORIZON)
 world.render_configuration_space(ax, time_horizon=TIME_HORIZON)
 
-tree = problem.planner.tree_start if "connect" in planner_name else problem.planner.tree
-color = "blue"
-verts, edges = tree.get_vertices(), tree.get_edges()
 
-render_tree(ax, verts, edges)
+if "connect" in planner_name:
+    tree_data = ((problem.planner.tree_start, "blue"), (problem.planner.tree_goal, "red"))
+else:
+    tree_data = ((problem.planner.tree, "blue"), )
+
+
+for tree, color in tree_data:
+    verts, edges = tree.get_vertices(), tree.get_edges()
+    render_tree(ax, verts, edges, color=color)
+
 
 if path.size > 0:
     ax.plot(path[:, 0], path[:, 1], color="orange", label="path", lw=2, ls="--", marker=".")
@@ -73,7 +85,7 @@ goal_region_xy_lower_corner = (goal_config[0] - goal_region_r, 0)
 ax.add_patch(
     Rectangle(
         goal_region_xy_lower_corner,
-        width=goal_region_r*2,
+        width=goal_region_r * 2,
         height=TIME_HORIZON,
         alpha=0.1,
         color="red"

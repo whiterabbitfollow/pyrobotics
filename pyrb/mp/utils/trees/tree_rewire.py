@@ -13,7 +13,7 @@ class TreeRewire(Tree):
         self.space = space
         self.local_planner = local_planner
 
-    def append_vertex_without_rewiring(self, state, i_parent, edge_cost=None):
+    def append_vertex_without_rewiring(self, state, i_parent, edge_cost):
         super().append_vertex(state, i_parent, edge_cost=edge_cost)
 
     def append_vertex(self, state, i_parent, edge_cost):
@@ -50,21 +50,24 @@ class TreeRewire(Tree):
 
     def find_nearest_indx_with_shortest_path(self, indxs_states_nearest_coll_free, state_new):
         states_nearest = self.vertices[indxs_states_nearest_coll_free]
-        edge_costs = self.space.transition_cost_dst_many(state_new, states_nearest)
+        edge_costs = self.space.transition_cost_src_many(states_src=states_nearest, state_dst=state_new)
         total_cost_to_new_through_nearest = self.cost_to_verts[indxs_states_nearest_coll_free] + edge_costs
         best_indx_in_subset = np.argmin(total_cost_to_new_through_nearest)
         best_indx = indxs_states_nearest_coll_free[best_indx_in_subset]
         best_edge_cost = edge_costs[best_indx_in_subset]
+
         return best_indx, best_edge_cost
 
     def rewire_nearest_through_new(self, i_new, state_new, indxs_states_nearest_coll_free):
         states_nearest = self.vertices[indxs_states_nearest_coll_free]
-        edge_costs = self.space.transition_cost_src_many(states_nearest, state_new)
+        edge_costs = self.space.transition_cost_dst_many(state_src=state_new, states_dst=states_nearest)
         cost_through_new = self.cost_to_verts[i_new] + edge_costs
         old_costs = self.cost_to_verts[indxs_states_nearest_coll_free]
-        indxs_rewire = indxs_states_nearest_coll_free[cost_through_new < old_costs]
+        mask = cost_through_new < old_costs
+        indxs_rewire = indxs_states_nearest_coll_free[mask]
+        edge_costs = edge_costs[mask]
         for i, edge_cost in zip(indxs_rewire, edge_costs):
-            self.create_edge(i_parent=i_new, i_child=i, edge_cost=edge_cost)
+            self.rewire_edge(i_parent=i_new, i_child=i, edge_cost=edge_cost)
 
 
 class TreeRewireSpaceTime(TreeRewire):
@@ -73,7 +76,7 @@ class TreeRewireSpaceTime(TreeRewire):
         self.nearest_time_window = nearest_time_window
         super().__init__(*args, **kwargs)
 
-    def append_vertex(self, state, i_parent, edge_cost=None):
+    def append_vertex(self, state, i_parent, edge_cost):
         i_new = self.vert_cnt
         indxs_past = self.get_nearest_past_states_indices(state)
         indxs_past_coll_free = self.get_collision_free_past_nearest_indices(state, indxs_past)

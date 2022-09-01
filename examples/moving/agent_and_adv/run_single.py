@@ -24,7 +24,7 @@ world = AgentAdversary2DWorld()
 goal_region = RealVectorMinimizingTimeGoalRegion()
 
 state_space_start = RealVectorTimeSpace(
-    world, world.robot.nr_joints, world.robot.joint_limits, max_time=TIME_HORIZON, goal_region=goal_region
+    world, world.robot.nr_joints, world.robot.joint_limits, max_time=TIME_HORIZON# , goal_region=goal_region
 )
 state_space_goal = RealVectorPastTimeSpace(
     world, world.robot.nr_joints, world.robot.joint_limits, max_time=TIME_HORIZON, goal_region=goal_region
@@ -32,13 +32,13 @@ state_space_goal = RealVectorPastTimeSpace(
 
 planners = compile_all_planners(world, state_space_start, state_space_goal)
 
+logger = logging.getLogger(GOAL_REGIONS_LOGGER_NAME)
+logger.setLevel(logging.DEBUG)
+logger.addHandler(logging.StreamHandler(sys.stdout))
+
 
 for planner_name in ("rrt_star", "rrt"):
     planner = planners[planner_name]
-
-    logger = logging.getLogger(GOAL_REGIONS_LOGGER_NAME)
-    logger.setLevel(logging.DEBUG)
-    logger.addHandler(logging.StreamHandler(sys.stdout))
 
     world.reset()
     state_start = np.append(world.robot.config, 0)
