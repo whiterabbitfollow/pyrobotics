@@ -8,6 +8,9 @@ class RealVectorStateSpace:
         self.dim = dim
         self.limits = limits
 
+    def is_within_bounds(self, state):
+        return ((self.limits[:, 0] <= state) & (state <= self.limits[:, 1])).all()
+
     def find_nearest_state(self, states, state):
         distance = np.linalg.norm(states - state, axis=1)
         i = np.argmin(distance)
@@ -61,6 +64,9 @@ class RealVectorTimeSpace:
         self.goal_region = goal_region
         self.min_time = min_time
         self.gamma = gamma
+
+    def is_within_bounds(self, state):
+        return ((self.limits[:, 0] <= state[:-1]) & (state[:-1] <= self.limits[:, 1])).all() and (self.min_time < state[-1] <= self.max_time)
 
     def find_nearest_state(self, states, state):
         t = state[-1]

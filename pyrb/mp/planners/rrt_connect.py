@@ -3,6 +3,7 @@ import logging
 import numpy as np
 
 from pyrb.mp.planners.rrt import LocalPlannerStatus
+from pyrb.mp.planners.rrt_informed import initialize_ellipsoid
 
 RRT_CONNECT_PLANNER_LOGGER_NAME = __file__
 logger = logging.getLogger(RRT_CONNECT_PLANNER_LOGGER_NAME)
@@ -55,9 +56,12 @@ class RRTConnectPlanner:
         cost = self.tree_start.cost_to_verts[i] if i is not None else np.inf
         print(f"{iter_cnt}: {self.tree_start.vert_cnt} best cost: {cost}")
 
+    def sample(self, space):
+        return space.sample_collision_free_state()
+
     def run(self):
         space = self.space or self.tree_a.space
-        state_free = space.sample_collision_free_state()
+        state_free = self.sample(space)
         i_nearest_a, state_nearest_a = space.find_nearest_state(self.tree_a.get_vertices(), state_free)
         if i_nearest_a is None or state_nearest_a is None:
             return
@@ -74,6 +78,9 @@ class RRTConnectPlanner:
             i_state_new_a = self.tree_a.append_vertex(state_new_a, i_parent=i_parent_a, edge_cost=edge_cost_a)
             if not self.connected:
                 self.connect_trees(i_state_new_a, state_new_a)
+
+            if self.tree_a == self.tree_start and self.goal_region.is_within(state_new_a):
+                self.report_goal_state(i_state_new_a)
             i_parent_a = i_state_new_a
         if not self.connected:
             self.tree_a, self.tree_b = self.swap_trees(self.tree_a, self.tree_b)
@@ -100,10 +107,16 @@ class RRTConnectPlanner:
                     state_new_b, i_parent=i_parent_b, edge_cost=edge_cost_b
                 )
             i_state_start, i_state_goal = self.sort_indices(self.tree_a, i_state_new_a, i_parent_b)
-            self.ingest_path_from_tree_goal(i_state_start, i_state_goal)
+            i_new_start = self.ingest_path_from_tree_goal(i_state_start, i_state_goal)
             logger.debug("Connected path")
             self.found_path = True
             self.connected = True
+            self.report_goal_state(i_new_start)
+
+    def report_goal_state(self, i_new):
+        self.found_path = True
+        cost = self.tree_start.cost_to_verts[i_new]
+        logger.debug("Found state in goal region with cost %s", cost)
 
     def get_goal_state_index(self):
         vertices = self.tree_start.get_vertices()
@@ -145,6 +158,7 @@ class RRTConnectPlanner:
         for state_old, state_new in zip(path_state_to_goal[:-1, :], path_state_to_goal[1:, :]):
             edge_cost = space.transition_cost(state_old, state_new)
             i_parent = self.tree_start.append_vertex(state_new, i_parent=i_parent, edge_cost=edge_cost)
+        return i_parent
 
     def connect_trees_from_indices(self, i_state_start,  i_state_goal):
         path_state_to_start = self.tree_start.find_path_to_root_from_vertex_index(i_state_start)
@@ -155,3 +169,61 @@ class RRTConnectPlanner:
         i = self.get_goal_state_index()
         cost = self.tree_start.cost_to_verts[i] if i is not None else np.inf
         return {"cost_best_path": cost}
+
+
+class RRTInformedConnectPlanner(RRTConnectPlanner):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.x_center = None
+        self.c_min = None
+        self.c_max = None
+        self.C = None
+        self.CL = None
+
+    def initialize_planner(self, state_start, goal_region):
+        super().initialize_planner(state_start, goal_region)
+        self.x_center, self.c_min, self.c_max, self.C = initialize_ellipsoid(state_start, goal_region.state)
+
+    def report_goal_state(self, i_new):
+        super().report_goal_state(i_new)
+        path = self.tree_start.find_path_to_root_from_vertex_index(i_new)
+        path = path[::-1]
+        c_max = self.c_max
+        c = np.linalg.norm(path[1:] - path[:-1], axis=1).sum() + np.linalg.norm(self.goal_region.state - path[-1])
+        self.c_max = min(c, c_max)
+        if self.c_max != c_max:
+            space = self.tree_start.space or self.space
+            r = np.zeros((space.dim,))
+            r[0] = self.c_max / 2
+            assert self.c_max > self.c_min
+            r[1:] = np.sqrt(self.c_max ** 2 - self.c_min ** 2) / 2
+            L = np.diag(r)
+            self.CL = self.C @ L
+            logger.debug("Cost improved, old: %s, new: %s", self.c_max, c_max)
+
+    def sample(self, space):
+        max_sample_counts = int(1e4)
+        if self.c_max < np.inf:
+            cnt = 0
+            while cnt < max_sample_counts:
+                x_ball = self.sample_unit_ball(space.dim)
+                x_rand = self.CL @ x_ball + self.x_center
+                # TODO: shouldn't int this...
+                x_rand[-1] = int(x_rand[-1])
+                if space.is_within_bounds(x_rand):
+                    break
+                cnt += 1
+            if cnt >= max_sample_counts:
+                raise RuntimeError("Max sample count achieved")
+            return x_rand
+        else:
+            return super().sample(space)
+
+    @staticmethod
+    def sample_unit_ball(n):
+        while True:
+            x = np.random.uniform(-1, 1, n)
+            if np.linalg.norm(x) < 1:
+                break
+        return x

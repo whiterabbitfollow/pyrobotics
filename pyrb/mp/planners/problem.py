@@ -34,8 +34,8 @@ class PlanningProblem:
             self,
             state_start,
             goal_region,
-            max_planning_time=np.inf,
             min_planning_time=0,
+            max_planning_time=np.inf,
             max_iters=np.inf,
             clear=True
     ):

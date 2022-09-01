@@ -100,7 +100,7 @@ class LocalPlannerSpaceTime(LocalPlanner):
         t_src, t_dst = state_src[-1], state_dst[-1]
         if isinstance(max_distance, tuple):
             max_distance, max_time_horizon = max_distance
-            t_end = self.transition(t_src, dt=max_time_horizon, time_horizon=space.max_time)
+            t_end = self.transition(t_src, dt=max_time_horizon, time_horizon=min(space.max_time, t_dst))
         else:
             t_end = t_dst
         path = [state_src]
@@ -162,8 +162,11 @@ class RRTPlanner:
     def can_run(self):
         return not self.tree.is_full()
 
+    def sample(self):
+        return self.space.sample_collision_free_state()
+
     def run(self):
-        state_free = self.space.sample_collision_free_state()
+        state_free = self.sample()
         i_nearest, state_nearest = self.space.find_nearest_state(self.tree.get_vertices(), state_free)
         if i_nearest is None or state_nearest is None:
             return
@@ -178,12 +181,17 @@ class RRTPlanner:
             for state_new in local_path:
                 edge_cost = self.space.transition_cost(state_new, self.tree.vertices[i_parent])
                 if self.can_run() and not self.tree.vertex_exists(state_new):
-                    i_parent = self.tree.append_vertex(
+                    i_new = self.tree.append_vertex(
                         state_new, i_parent=i_parent, edge_cost=edge_cost
                     )
                     if self.goal_region.is_within(state_new):
-                        self.found_path = True
-                        logger.debug("Found state in goal region!")
+                        self.report_goal_state(i_new)
+                    i_parent = i_new
+
+    def report_goal_state(self, i_new):
+        self.found_path = True
+        cost = self.tree.cost_to_verts[i_new]
+        logger.debug("Found state in goal region with cost %s", cost)
 
     def get_goal_state_index(self):
         vertices = self.tree.get_vertices()
