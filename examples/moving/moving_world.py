@@ -99,11 +99,11 @@ class MovingBox1DimWorld(BaseMPTimeVaryingWorld):
         # self.render_configuration_space(ax2)
         plt.show()
 
-    def create_space_time_map(self, time_horizon=100):
+    def create_space_time_map(self, t_start=0, time_horizon=100):
         joint_limits = self.robot.joint_limits
         theta_1_nr_data_points = 100
         thetas_raw_1 = np.linspace(joint_limits[0, 0], joint_limits[0, 1], theta_1_nr_data_points)
-        time = np.arange(1, time_horizon + 1)
+        time = np.arange(t_start + 1, time_horizon + 1)
         theta_grid_1, time_grid_2 = np.meshgrid(thetas_raw_1, time)
         states = np.stack([theta_grid_1.ravel(), time_grid_2.ravel()], axis=1)
         collision_mask = []
@@ -112,10 +112,10 @@ class MovingBox1DimWorld(BaseMPTimeVaryingWorld):
             self.obstacles.set_time(state[-1])
             collision = self.robot.collision_manager.in_collision_other(self.obstacles.collision_manager)
             collision_mask.append(not collision)
-        collision_mask = np.array(collision_mask).reshape(time_horizon, theta_1_nr_data_points)
+        collision_mask = np.array(collision_mask).reshape(time_horizon-t_start, theta_1_nr_data_points)
         self.cmap = theta_grid_1, time_grid_2, collision_mask
 
-    def render_configuration_space(self, ax, time_horizon=100):
+    def render_configuration_space(self, ax, t_start=0, time_horizon=100):
         joint_limits = self.robot.joint_limits
         ax.pcolormesh(*self.cmap)
         # ax.scatter(self.start_config[0], self.start_config[1], label="Config")
@@ -127,7 +127,7 @@ class MovingBox1DimWorld(BaseMPTimeVaryingWorld):
         ax.set_xlabel(r"$\theta_1$")
         ax.set_ylabel(r"time")
         ax.set_xlim(joint_limits[0, 0], joint_limits[0, 1])
-        ax.set_ylim(0, time_horizon + 5)
+        ax.set_ylim(t_start, time_horizon + 5)
         # ax.legend(loc="best")
 
 
