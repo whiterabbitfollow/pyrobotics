@@ -1,15 +1,24 @@
+from enum import Enum, auto
+
 from pyrb.mp.planners.rrt import LocalPlannerSpaceTime, RRTPlanner
 from pyrb.mp.planners.rrt_connect import RRTConnectPlanner
 from pyrb.mp.utils.trees.tree import Tree
 from pyrb.mp.utils.trees.tree_rewire import TreeRewireSpaceTime
 
 
+class Planners(Enum):
+    RRT = "rrt"
+    RRT_STAR = "rrt_star"
+    RRT_CONNECT = "rrt_connect"
+    RRT_STAR_CONNECT_PARTIAL = "rrt_star_connect_partial"
+
+
 def compile_all_planners(world, state_space_start, state_space_goal):
     planner_kwargs = [
-        ("rrt", make_rrt, {"state_space": state_space_start}),
-        ("rrt_star", make_rrt_star, {"state_space": state_space_start}),
-        ("rrt_connect", make_rrt_connect, {"state_space_start": state_space_start, "state_space_goal": state_space_goal}),
-        ("rrt_star_connect_partial", make_rrt_star_connect_partial, {"state_space_start": state_space_start, "state_space_goal": state_space_goal})
+        (Planners.RRT, make_rrt, {"state_space": state_space_start}),
+        (Planners.RRT_STAR, make_rrt_star, {"state_space": state_space_start}),
+        (Planners.RRT_CONNECT, make_rrt_connect, {"state_space_start": state_space_start, "state_space_goal": state_space_goal}),
+        (Planners.RRT_STAR_CONNECT_PARTIAL, make_rrt_star_connect_partial, {"state_space_start": state_space_start, "state_space_goal": state_space_goal})
     ]
     planners = {}
     for planner_name, make_func, make_func_kwargs in planner_kwargs:

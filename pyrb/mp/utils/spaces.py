@@ -84,7 +84,8 @@ class RealVectorTimeSpace:
         if self.goal_region is not None and np.isfinite(self.goal_region.time_horizon):
             time_horizon = self.goal_region.time_horizon
         while True:
-            t = np.random.randint(self.min_time + 1, time_horizon + 1)
+            t_low, t_upper = self.min_time + 1, time_horizon + 1
+            t = t_low if t_low == t_upper else np.random.randint(t_low, t_upper)
             # TODO: should constrain sampling based on t... actuation etc.
             config = np.random.uniform(self.limits[:, 0], self.limits[:, 1])
             state = np.append(config, t)
