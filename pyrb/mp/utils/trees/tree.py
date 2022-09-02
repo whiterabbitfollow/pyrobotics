@@ -5,17 +5,26 @@ class Tree:
 
     def __init__(self, max_nr_vertices, vertex_dim, space=None):
         self.space = space
+
         self.cost_to_verts = np.zeros(max_nr_vertices)
+        self.edge_costs = np.zeros(max_nr_vertices)
+
         self.vertices = np.zeros((max_nr_vertices, vertex_dim))
         self.max_nr_vertices = max_nr_vertices
         self.edges_child_to_parent = np.zeros((max_nr_vertices,), dtype=int)
+        self.edges_parent_to_children = []
         self.vert_cnt = 0
+        self.vertices_dict = set()
 
     def clear(self):
         self.vertices.fill(0)
         self.edges_child_to_parent.fill(0)
         self.cost_to_verts.fill(0)
+        self.edge_costs.fill(0)
+        self.vertices_dict.clear()
+        self.edges_parent_to_children.clear()
         self.vert_cnt = 0
+
 
     def set_cost_from_parent(self, i_parent, i_child, edge_cost):
         self.cost_to_verts[i_child] = self.cost_to_verts[i_parent] + edge_cost
@@ -23,29 +32,52 @@ class Tree:
     def is_full(self):
         return self.vert_cnt >= self.max_nr_vertices
 
+    def set_root_vertex(self, vertex):
+        self.vertices[0, :] = vertex
+        self.vertices_dict.add(tuple(vertex))
+        self.edges_parent_to_children.append([])
+        self.vert_cnt += 1
+
     def add_vertex(self, vertex):
+        # TODO: should deprecate this
         self.vertices[self.vert_cnt, :] = vertex
+        self.vertices_dict.add(tuple(vertex))
+        self.edges_parent_to_children.append([])
         self.vert_cnt += 1
 
     def append_vertex(self, state, i_parent, edge_cost):
-        # TODO: need something like this, and propagate to children that it has changed..
-        # mask = np.all(state == self.vertices[:self.vert_cnt], axis=1)
-        # if mask.any():
-        #     i_new = mask.nonzero()[0][0]
-        #     new_cost = self.cost_to_verts[i_parent] + edge_cost
-        #     old_cost = self.cost_to_verts[i_new]
-        #     if new_cost > old_cost:
-        #         return i_new
-        # else:
         i_new = self.vert_cnt
+        self.vertices_dict.add(tuple(state))
         self.vertices[i_new, :] = state
+        self.edges_parent_to_children.append([])
         self.vert_cnt += 1
         self.create_edge(i_parent, i_new, edge_cost=edge_cost)
         return i_new
 
-    def create_edge(self, i_parent, i_child, edge_cost=1):
+    def vertex_exists(self, vertex):
+        return tuple(vertex) in self.vertices_dict
+
+    def create_edge(self, i_parent, i_child, edge_cost):
         self.edges_child_to_parent[i_child] = i_parent
         self.set_cost_from_parent(i_parent=i_parent, i_child=i_child, edge_cost=edge_cost)
+        self.edges_parent_to_children[i_parent].append(i_child)
+        self.edge_costs[i_child] = edge_cost
+
+    def rewire_edge(self, i_parent, i_child, edge_cost):
+        i_parent_old = self.edges_child_to_parent[i_child]
+        if i_parent_old == i_parent:
+            return
+        self.edges_parent_to_children[i_parent_old].remove(i_child)
+        self.create_edge(i_parent, i_child, edge_cost)
+        self.propagate_cost_from_index(i_child)
+
+    def propagate_cost_from_index(self, i_start):
+        indxs_children = list(self.edges_parent_to_children[i_start])
+        while indxs_children:
+            i_child = indxs_children.pop(0)
+            i_parent = self.edges_child_to_parent[i_child]
+            self.cost_to_verts[i_child] = self.cost_to_verts[i_parent] + self.edge_costs[i_child]
+            indxs_children.extend(self.edges_parent_to_children[i_child])
 
     def insert_vertex_in_tree(self, i, state):
         self.vertices[i, :] = state

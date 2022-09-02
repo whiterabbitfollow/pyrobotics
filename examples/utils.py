@@ -33,9 +33,13 @@ def render_tree(ax, vertices, edges, color="black", lw=2):
 
 
 def plot_rrt_planner_results(world, planner, path, state_start, state_goal, goal_region):
-
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 10))
+    render_rrt_planner_results(ax1, ax2, world, planner, path, state_start, state_goal, goal_region)
+    plt.show()
 
+
+def render_rrt_planner_results(ax1, ax2, world, planner, path, state_start, state_goal, goal_region):
+    world.robot.set_config(state_start)
     world.render_world(ax1)
     world.render_configuration_space(ax2)
 
@@ -56,13 +60,14 @@ def plot_rrt_planner_results(world, planner, path, state_start, state_goal, goal
     ax2.set_xlabel(r"$\theta_1$")
     ax2.set_ylabel(r"$\theta_2$")
 
+
+def plot_rrt_connect_planner_results(world, planner, path, state_start, state_goal, goal_region):
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 10))
+    render_rrt_planner_results(ax1, ax2, world, planner, path, state_start, state_goal, goal_region)
     plt.show()
 
 
-def plot_rrt_connect_planner_results(world, planner, path, state_start, state_goal, goal_region):
-
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 10))
-
+def render_rrt_connect_planner_results(ax1, ax2, world, planner, path, state_start, state_goal, goal_region):
     world.render_world(ax1)
     world.render_configuration_space(ax2)
 
@@ -84,4 +89,4 @@ def plot_rrt_connect_planner_results(world, planner, path, state_start, state_go
     ax2.set_xlabel(r"$\theta_1$")
     ax2.set_ylabel(r"$\theta_2$")
 
-    plt.show()
+

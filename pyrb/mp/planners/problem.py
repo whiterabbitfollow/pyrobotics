@@ -15,10 +15,10 @@ class SolutionStatus:
 
 class PlanningData:
 
-    def __init__(self, status, time_taken, meta_data):
+    def __init__(self, status, meta_data_problem, meta_data_planner):
         self.status = status
-        self.time_taken = time_taken
-        self.meta_data = meta_data
+        self.meta_data_problem = meta_data_problem
+        self.meta_data_planner = meta_data_planner
 
 
 class PlanningProblem:
@@ -30,9 +30,19 @@ class PlanningProblem:
     def set_planner(self, planner):
         self.planner = planner
 
-    def solve(self, state_start, goal_region, max_planning_time=np.inf, min_planning_time=0, max_iters=np.inf):
+    def solve(
+            self,
+            state_start,
+            goal_region,
+            min_planning_time=0,
+            max_planning_time=np.inf,
+            max_iters=np.inf,
+            clear=True
+    ):
         time_s, time_elapsed = start_timer()
-        self.planner.clear()
+        time_first_found = None
+        if clear:
+            self.planner.clear()
         self.planner.initialize_planner(state_start, goal_region)
         iter_cnt = 0
         while (
@@ -50,11 +60,18 @@ class PlanningProblem:
             iter_cnt += 1
             if iter_cnt > max_iters:
                 break
+            if time_first_found is None and self.planner.found_path:
+                time_first_found = time.time() - time_s
         path = self.planner.get_path()
-        return path, self.compile_planning_data(
-            path, time_elapsed, self.planner.get_planning_meta_data()
-        )
-
-    def compile_planning_data(self, path, time_elapsed, meta_data):
         status = SolutionStatus.SUCCESS if path.size else SolutionStatus.FAILURE
-        return PlanningData(status=status, time_taken=time_elapsed, meta_data=meta_data)
+        meta_data_problem = {
+            "iter_cnt": iter_cnt, "time_elapsed": time_elapsed, "time_first_found": time_first_found or np.nan
+        }
+        data = PlanningData(
+            status=status,
+            meta_data_problem=meta_data_problem,
+            meta_data_planner=self.planner.get_planning_meta_data()
+        )
+        return path, data
+
+
