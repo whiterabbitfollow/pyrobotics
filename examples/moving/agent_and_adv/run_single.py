@@ -10,8 +10,6 @@ from pyrb.mp.utils.spaces import RealVectorTimeSpace, RealVectorPastTimeSpace
 import logging
 import sys
 
-from collections import defaultdict
-
 
 np.random.seed(9)
 MAX_PLANNING_TIME = 100
