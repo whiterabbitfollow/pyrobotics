@@ -22,7 +22,7 @@ def render_manipulator_on_axis(ax, manipulator, color, alpha=1.0):
     ax.add_collection(coll)
 
 
-def render_tree(ax, vertices, edges, color="black", lw=2):
+def render_tree(ax, vertices, edges, color="black", lw=1):
     ax.scatter(vertices[:, 0], vertices[:, 1], color=color)
     for i_child, i_parent in enumerate(edges):
         if i_parent >= vertices.shape[0]:

@@ -2,7 +2,7 @@ import logging
 
 import numpy as np
 
-from pyrb.mp.planners.rrt import LocalPlannerStatus
+from pyrb.mp.utils.constants import LocalPlannerStatus
 from pyrb.mp.planners.rrt_informed import initialize_ellipsoid
 
 RRT_CONNECT_PLANNER_LOGGER_NAME = __file__

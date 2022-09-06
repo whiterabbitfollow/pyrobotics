@@ -1,6 +1,7 @@
-from enum import Enum, auto
+from enum import Enum
 
-from pyrb.mp.planners.rrt import LocalPlannerSpaceTime, RRTPlanner
+from pyrb.mp.planners.local_planners import LocalPlannerSpaceTime
+from pyrb.mp.planners.rrt import RRTPlanner
 from pyrb.mp.planners.rrt_connect import RRTConnectPlanner, RRTInformedConnectPlanner
 from pyrb.mp.planners.rrt_informed import RRTInformedPlanner
 from pyrb.mp.utils.trees.tree import Tree
@@ -34,7 +35,7 @@ def compile_all_planners(world, state_space_start, state_space_goal):
 
 def make_rrt(world, state_space, max_nr_vertices=int(1e4)):
     local_planner = LocalPlannerSpaceTime(
-        min_path_distance=0.2,
+        # min_path_distance=0.2,
         min_coll_step_size=0.05,
         max_distance=(1.0, 20),
         max_actuation=world.robot.max_actuation
@@ -49,7 +50,7 @@ def make_rrt(world, state_space, max_nr_vertices=int(1e4)):
 
 def make_rrt_connect(world, state_space_start, state_space_goal):
     local_planner = LocalPlannerSpaceTime(
-        min_path_distance=0.2,
+        # min_path_distance=0.2,
         min_coll_step_size=0.05,
         max_distance=(1.0, 5),
         max_actuation=world.robot.max_actuation
@@ -79,8 +80,8 @@ def make_rrt_connect(world, state_space_start, state_space_goal):
 def make_rrt_star(world, state_space):
     local_planner = LocalPlannerSpaceTime(
         world.robot.max_actuation,
-        nr_time_steps=5,
-        min_path_distance=.3,
+        # nr_time_steps=5,
+        # min_path_distance=.3,
         min_coll_step_size=0.05,
         max_distance=(1.0, 10)
     )
@@ -102,8 +103,8 @@ def make_rrt_star(world, state_space):
 def make_rrt_star_informed(world, state_space):
     local_planner = LocalPlannerSpaceTime(
         world.robot.max_actuation,
-        nr_time_steps=5,
-        min_path_distance=.3,
+        # nr_time_steps=5,
+        # min_path_distance=.3,
         min_coll_step_size=0.05,
         max_distance=(1.0, 10)
     )
@@ -124,7 +125,7 @@ def make_rrt_star_informed(world, state_space):
 
 def make_rrt_star_connect(world, state_space_start, state_space_goal):
     local_planner = LocalPlannerSpaceTime(
-        min_path_distance=0.2,
+        # min_path_distance=0.2,
         min_coll_step_size=0.05,
         max_distance=(1.0, 5),
         max_actuation=world.robot.max_actuation
@@ -157,7 +158,7 @@ def make_rrt_star_connect(world, state_space_start, state_space_goal):
 
 def make_rrt_star_connect_partial(world, state_space_start, state_space_goal):
     local_planner = LocalPlannerSpaceTime(
-        min_path_distance=0.2,
+        # min_path_distance=0.2,
         min_coll_step_size=0.05,
         max_distance=(1.0, 5),
         max_actuation=world.robot.max_actuation
@@ -188,7 +189,7 @@ def make_rrt_star_connect_partial(world, state_space_start, state_space_goal):
 
 def make_rrt_star_informed_connect_partial(world, state_space_start, state_space_goal):
     local_planner = LocalPlannerSpaceTime(
-        min_path_distance=0.2,
+        # min_path_distance=0.2,
         min_coll_step_size=0.05,
         max_distance=(1.0, 5),
         max_actuation=world.robot.max_actuation

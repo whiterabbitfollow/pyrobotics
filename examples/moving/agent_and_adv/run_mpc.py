@@ -1,7 +1,7 @@
 from matplotlib.patches import Rectangle
 
 from examples.moving.agent_and_adv.agent_n_adversary_world import AgentAdversary2DWorld
-from examples.moving.make import compile_all_planners
+from examples.moving.make import compile_all_planners, Planners
 from examples.moving.moving_world import MovingBox1DimWorld
 from examples.utils import render_tree
 import numpy as np
@@ -68,11 +68,10 @@ state_space_goal = RealVectorPastTimeSpace(
 )
 
 
-planner_name = "rrt_connect"
+planner_name = Planners.RRT_STAR_INFORMED_CONNECT_PARTIAL
 planners = compile_all_planners(world, state_space_start, state_space_goal)
 planner = planners[planner_name]
 problem = PlanningProblem(planner)
-
 
 t = 0
 start_config = world.robot.config
@@ -105,7 +104,7 @@ while True:
     path, status = problem.solve(
         state_start,
         goal_region,
-        min_planning_time=0.1,
+        min_planning_time=0.5,
         max_planning_time=5,
         clear=False
     )
@@ -140,6 +139,8 @@ while True:
 
     planner.tree_start = tree_new
     planner.tree_goal.clear()
+    planner.found_path = False
+    planner.connected = False
 
     plot(ax1, ax2, world, goal_region, sub_paths, t_start, future_path)
     plt.pause(1.0)

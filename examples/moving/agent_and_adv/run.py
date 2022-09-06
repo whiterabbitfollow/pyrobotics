@@ -2,17 +2,20 @@ import numpy as np
 import tqdm
 
 from examples.moving.agent_and_adv.agent_n_adversary_world import AgentAdversary2DWorld
-from examples.moving.make import compile_all_planners
+from examples.moving.make import compile_all_planners, Planners
 from pyrb.mp.planners.problem import PlanningProblem
 from pyrb.mp.utils.goal_regions import RealVectorTimeGoalRegion, RealVectorMinimizingTimeGoalRegion
 from pyrb.mp.utils.spaces import RealVectorTimeSpace, RealVectorPastTimeSpace
 
 
+
+
 from collections import defaultdict
 
 
-np.random.seed(6)  # Challenging, solvable with ~200 steps...
-PLANNING_TIME = 10
+np.random.seed(6)
+MIN_PLANNING_TIME = 5
+MAX_PLANNING_TIME = 10
 TIME_HORIZON = 300
 
 world = AgentAdversary2DWorld()
@@ -30,13 +33,13 @@ state_space_goal = RealVectorPastTimeSpace(
 
 planners = compile_all_planners(world, state_space_start, state_space_goal)
 
-planners = {name: planners[name] for name in ("rrt", "rrt_star")}
+planners = {name.value: planners[name] for name in (Planners.RRT, Planners.RRT_STAR, Planners.RRT_CONNECT, Planners.RRT_STAR_CONNECT_PARTIAL)}
 
 stats = {planner_name: defaultdict(list) for planner_name in planners}
 
 problem = PlanningProblem(None)
 
-for i in tqdm.tqdm(range(10)):
+for i in tqdm.tqdm(range(50)):
     world.reset()
     state_start = np.append(world.robot.config, 0)
     goal_config = world.robot.goal_state
@@ -44,25 +47,27 @@ for i in tqdm.tqdm(range(10)):
     for planner_name, planner in planners.items():
         problem.set_planner(planner)
         goal_region.set_goal_state(state_goal)
-        path, status = problem.solve(
+        path, data = problem.solve(
             state_start,
             goal_region,
-            min_planning_time=PLANNING_TIME,
-            max_planning_time=PLANNING_TIME
+            min_planning_time=MIN_PLANNING_TIME,
+            max_planning_time=MAX_PLANNING_TIME
         )
-        stats[planner_name]["success"].append(status.status == "success")
-        stats[planner_name]["time_elapsed"].append(status.time_taken)
-        stats[planner_name]["path_cost"].append(status.meta_data["cost_best_path"])
+        stats[planner_name]["success"].append(data.status == "success")
+        stats[planner_name]["time_elapsed"].append(data.meta_data_problem["time_elapsed"])
+        stats[planner_name]["time_first_found"].append(data.meta_data_problem["time_first_found"])
+        stats[planner_name]["path_cost"].append(data.meta_data_planner["cost_best_path"])
         stats[planner_name]["path_len"].append(path.shape[0] if path.shape[0] else np.inf)
         stats[planner_name]["path_time_horizon"].append(path[-1, -1] if path.size else np.inf)
 
 
 for planner_name in stats:
     print(planner_name)
-    for stat_name in ("success", "time_elapsed", "path_cost", "path_len", "path_time_horizon"):
+    for stat_name in ("success", "time_elapsed", "time_first_found", "path_cost", "path_len", "path_time_horizon"):
         vals = np.array(stats[planner_name][stat_name])
         vals_finite = vals[np.isfinite(vals)]
         print(stat_name, np.mean(vals_finite))
+
 
 
 # # TODO: Could be the case that ingest to many states
