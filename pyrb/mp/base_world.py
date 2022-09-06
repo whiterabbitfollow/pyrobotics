@@ -33,6 +33,9 @@ class BaseMPWorld(metaclass=ABCMeta):
         self.robot.set_config(state)
         return not self.robot.collision_manager.in_collision_other(self.obstacles.collision_manager)
 
+    def get_min_distance_to_obstacle(self) -> float:
+        return self.robot.collision_manager.min_distance_other(self.obstacles.collision_manager)
+
     @abstractmethod
     def reset(self):
         raise NotImplementedError()

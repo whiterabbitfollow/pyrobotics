@@ -59,8 +59,10 @@ path, status = problem.solve(
     min_planning_time=MIN_PLANNING_TIME,
     max_planning_time=MAX_PLANNING_TIME
 )
+
 print("Post processing path")
 print("Time horizon before preprocessing", path[-1, -1])
+
 path_pp = post_process_path_space_time_minimal_time(
     state_space_start,
     planner.local_planner,
@@ -68,6 +70,7 @@ path_pp = post_process_path_space_time_minimal_time(
     path,
     max_cnt_no_improvement=10
 )
+
 print("Time horizon after preprocessing", path_pp[-1, -1])
 
 import matplotlib.pyplot as plt

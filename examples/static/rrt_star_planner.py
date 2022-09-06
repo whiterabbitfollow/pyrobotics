@@ -1,7 +1,8 @@
 from examples.static.static_world import StaticBoxesWorld
 from examples.utils import plot_rrt_planner_results
 from pyrb.mp.planners.problem import PlanningProblem
-from pyrb.mp.planners.rrt import RRTPlanner, RRT_PLANNER_LOGGER_NAME, LocalPlanner
+from pyrb.mp.planners.rrt import RRTPlanner, RRT_PLANNER_LOGGER_NAME
+from pyrb.mp.planners.local_planners import LocalPlanner
 
 import logging
 import sys
@@ -26,7 +27,6 @@ state_space = RealVectorStateSpace(
 goal_region = RealVectorGoalRegion()
 
 local_planner = LocalPlanner(
-    min_path_distance=0.1,
     min_coll_step_size=0.1,
     max_distance=0.5
 )

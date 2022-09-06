@@ -3,7 +3,7 @@ import numpy as np
 from examples.static.static_world import StaticBoxesWorld
 from examples.utils import render_rrt_connect_planner_results
 from pyrb.mp.planners.problem import PlanningProblem
-from pyrb.mp.planners.rrt import LocalPlanner
+from pyrb.mp.planners.local_planners import LocalPlanner
 from pyrb.mp.planners.rrt_connect import RRTInformedConnectPlanner
 from pyrb.mp.utils.goal_regions import RealVectorGoalRegion
 from pyrb.mp.utils.spaces import RealVectorStateSpace
@@ -24,7 +24,6 @@ state_space = RealVectorStateSpace(
 goal_region = RealVectorGoalRegion()
 
 local_planner = LocalPlanner(
-    min_path_distance=0.1,
     min_coll_step_size=0.05,
     max_distance=0.5
 )
