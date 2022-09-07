@@ -56,6 +56,8 @@ def post_process_path_space_time_minimal_time(
                 path_pp = path_pp_new
         if not improvement:
             cnt_no_improvement += 1
+        else:
+            cnt_no_improvement = 0
         if path_pp.shape[0] < 3:
             break
         i = np.random.randint(0, path_pp.shape[0] - 2)
