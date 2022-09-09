@@ -41,6 +41,7 @@ class CylinderObstacle:
 class PointMassRobot:
 
     def __init__(self):
+        self.state_dim = 2
         self.radius = 0.1
         self.height = 0.1
         self.geometry = trimesh.creation.cylinder(radius=self.radius, height=self.height)
@@ -87,7 +88,6 @@ class CylinderWorld(BaseMPWorld):
 if __name__ == "__main__":
     world = CylinderWorld()
     world.reset()
-
     print(world.get_min_distance_to_obstacle())
     # world.is_collision_free_transition()
-    # world.view()
+    world.view()
