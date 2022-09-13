@@ -72,7 +72,6 @@ class MovingRobotAdversary(pyrb.robot.Manipulator):
     def set_random_trajectory(self, seed=None):
         state = None
         if seed is not None:
-            print(f"setting seed {seed}")
             state = np.random.get_state()
             np.random.seed(seed)
         nr_joints = self.joint_limits.shape[0]
