@@ -65,6 +65,10 @@ class RealVectorTimeSpace:
         self.min_time = min_time
         self.gamma = gamma
 
+    def set_time_interval(self, t_min, t_max):
+        self.min_time = t_min
+        self.max_time = t_max
+
     def is_within_bounds(self, state):
         return ((self.limits[:, 0] <= state[:-1]) & (state[:-1] <= self.limits[:, 1])).all() and (self.min_time < state[-1] <= self.max_time)
 
