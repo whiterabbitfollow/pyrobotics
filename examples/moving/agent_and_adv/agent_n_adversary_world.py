@@ -36,8 +36,8 @@ class AgentAdversary2DWorld(BaseMPTimeVaryingWorld):
         ax.get_yaxis().set_ticks([])
         ax.set_aspect("equal")
 
-    def reset(self):
-        self.obstacles.reset()
+    def reset(self, seed=None):
+        self.obstacles.reset(seed)
         self.reset_config()
 
     def reset_config(self):

@@ -48,7 +48,7 @@ def make_rrt(world, state_space, max_nr_vertices=int(1e4)):
     return planner
 
 
-def make_rrt_connect(world, state_space_start, state_space_goal):
+def make_rrt_connect(world, state_space_start, state_space_goal, max_nr_vertices=int(1e4)):
     local_planner = LocalPlannerSpaceTime(
         # min_path_distance=0.2,
         min_coll_step_size=0.05,
@@ -58,13 +58,13 @@ def make_rrt_connect(world, state_space_start, state_space_goal):
 
     tree_start = Tree(
         space=state_space_start,
-        max_nr_vertices=int(1e4),
+        max_nr_vertices=max_nr_vertices,
         vertex_dim=state_space_start.dim
     )
 
     tree_goal = Tree(
         space=state_space_goal,
-        max_nr_vertices=int(1e4),
+        max_nr_vertices=max_nr_vertices,
         vertex_dim=state_space_goal.dim
     )
 

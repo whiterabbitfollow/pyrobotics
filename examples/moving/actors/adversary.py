@@ -54,13 +54,13 @@ class MovingRobotAdversary(pyrb.robot.Manipulator):
     def truncate_time_step(self, time_step):
         return time_step % self.traj.shape[0]
 
-    def reset(self):
+    def reset(self, seed=None):
         if self.reset_mode == "random":
             max_nr_retries = 10
             nr_retries = 0
             while True:
                 try:
-                    self.set_random_trajectory()
+                    self.set_random_trajectory(seed)
                     break
                 except:
                     nr_retries += 1
@@ -69,7 +69,11 @@ class MovingRobotAdversary(pyrb.robot.Manipulator):
         else:
             assert self.traj.shape[0] > 0, "No trajectory set"
 
-    def set_random_trajectory(self):
+    def set_random_trajectory(self, seed=None):
+        state = None
+        if seed is not None:
+            state = np.random.get_state()
+            np.random.seed(seed)
         nr_joints = self.joint_limits.shape[0]
         pose_first = self.sample_valid_pose()
         velocity_first = np.random.uniform(0, 2 * np.pi, nr_joints)
@@ -116,6 +120,8 @@ class MovingRobotAdversary(pyrb.robot.Manipulator):
                 raise RuntimeError("Couldn't create a valid trajectory")
 
         self.traj = np.vstack(poses)
+        if state is not None:
+            np.random.set_state(state)
 
     def sample_valid_pose(self):
         is_collision = True
