@@ -65,7 +65,10 @@ class MovingRobotAdversary(pyrb.robot.Manipulator):
                 except:
                     nr_retries += 1
                 if nr_retries > max_nr_retries:
-                    print(f"Warning!!! nr retires for finding a traj {nr_retries}")
+                    if seed is not None:
+                        raise RuntimeError()
+                    else:
+                        print(f"Warning!!! nr retires for finding a traj {nr_retries}, seed {seed}")
         else:
             assert self.traj.shape[0] > 0, "No trajectory set"
 
