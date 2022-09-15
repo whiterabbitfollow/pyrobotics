@@ -18,16 +18,22 @@ class BaseMPWorld(metaclass=ABCMeta):
             if self.is_collision_free_state(state):
                 return state
 
-    def is_collision_free_transition(self, state_src, state_dst, nr_coll_steps=10):
+    def is_collision_free_transition(self, state_src, state_dst, nr_coll_steps=10, return_distance=False):
         # Assumes state_src is collision free...
         is_collision_free = False
+        distance = np.inf
         for i in range(1, nr_coll_steps + 1):
             alpha = i / nr_coll_steps
             state = state_dst * alpha + (1 - alpha) * state_src
             is_collision_free = self.is_collision_free_state(state)
+            if return_distance:
+                distance = min(self.get_min_distance_to_obstacle(), distance)
             if not is_collision_free:
                 break
-        return is_collision_free
+        if return_distance:
+            return is_collision_free, distance
+        else:
+            return is_collision_free
 
     def is_collision_free_state(self, state) -> bool:
         self.robot.set_config(state)

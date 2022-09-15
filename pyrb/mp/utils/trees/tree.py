@@ -14,7 +14,7 @@ class Tree:
         self.edges_child_to_parent = np.zeros((max_nr_vertices,), dtype=int)
         self.edges_parent_to_children = []
         self.vert_cnt = 0
-        self.vertices_dict = set()
+        self.vertices_dict = {}
 
     def clear(self):
         self.vertices.fill(0)
@@ -25,7 +25,6 @@ class Tree:
         self.edges_parent_to_children.clear()
         self.vert_cnt = 0
 
-
     def set_cost_from_parent(self, i_parent, i_child, edge_cost):
         self.cost_to_verts[i_child] = self.cost_to_verts[i_parent] + edge_cost
 
@@ -34,23 +33,27 @@ class Tree:
 
     def set_root_vertex(self, vertex):
         self.vertices[0, :] = vertex
-        self.vertices_dict.add(tuple(vertex))
+        self.vertices_dict[tuple(vertex)] = 0
         self.edges_parent_to_children.append([])
         self.vert_cnt += 1
 
     def add_vertex(self, vertex):
         # TODO: should deprecate this
         self.vertices[self.vert_cnt, :] = vertex
-        self.vertices_dict.add(tuple(vertex))
+        self.vertices_dict[tuple(vertex)] = self.vert_cnt
         self.edges_parent_to_children.append([])
         self.vert_cnt += 1
 
     def append_vertex(self, state, i_parent, edge_cost):
-        i_new = self.vert_cnt
-        self.vertices_dict.add(tuple(state))
-        self.vertices[i_new, :] = state
-        self.edges_parent_to_children.append([])
-        self.vert_cnt += 1
+        i_old = self.vertices_dict.get(tuple(state))
+        if i_old is None:
+            i_new = self.vert_cnt
+            self.vertices_dict[tuple(state)] = self.vert_cnt
+            self.vertices[i_new, :] = state
+            self.edges_parent_to_children.append([])
+            self.vert_cnt += 1
+        else:
+            i_new = i_old
         self.create_edge(i_parent, i_new, edge_cost=edge_cost)
         return i_new
 

@@ -158,11 +158,11 @@ class MovingBoxWorld(BaseMPTimeVaryingWorld):
     def render_world(self, ax):
         render_world(self, ax)
 
-    def render_configuration_space(self, ax, path=None):
-        joint_limits = self.robot.joint_limits
-        thetas_raw_1 = np.linspace(joint_limits[0, 0], joint_limits[0, 1], 100)
-        thetas_raw_2 = np.linspace(joint_limits[1, 0], joint_limits[1, 1], 100)
-        theta_grid_1, theta_grid_2 = np.meshgrid(thetas_raw_1, thetas_raw_2)
+    def make_configuration_space_map(self):
+        limits = self.robot.joint_limits
+        thetas_raw_1 = np.linspace(limits[0, 0], limits[0, 1], 100)
+        thetas_raw_2 = np.linspace(limits[1, 0], limits[1, 1], 100)
+        theta_grid_1, theta_grid_2, *_ = np.meshgrid(thetas_raw_1, thetas_raw_2)
         thetas = np.stack([theta_grid_1.ravel(), theta_grid_2.ravel()], axis=1)
         collision_mask = []
         for theta in thetas:
@@ -170,6 +170,11 @@ class MovingBoxWorld(BaseMPTimeVaryingWorld):
             collision = self.robot.collision_manager.in_collision_other(self.obstacles.collision_manager)
             collision_mask.append(not collision)
         collision_mask = np.array(collision_mask).reshape(100, 100)
+        return theta_grid_1, theta_grid_2, collision_mask
+
+    def render_configuration_space(self, ax, path=None):
+        joint_limits = self.robot.joint_limits
+        theta_grid_1, theta_grid_2, collision_mask = self.make_configuration_space_map()
         ax.pcolormesh(theta_grid_1, theta_grid_2, collision_mask)
         ax.scatter(self.start_config[0], self.start_config[1], label="Config")
         ax.add_patch(Circle(tuple(self.robot.goal_state), radius=0.1, color="red", alpha=0.1))
@@ -215,18 +220,12 @@ def render_world(world, ax):
 
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
-    world = MovingBox1DimWorld()
+    world = MovingBoxWorld()
     world.reset()
-    # fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 10))
-    fig, ax1 = plt.subplots(1, 1, figsize=(10, 10))
-    world.create_space_time_map()
-    world.render_configuration_space(ax1)
-    plt.show()
-    # for t in range(100):
-    #     world.reset()
-    #     render_world(world, ax1)
-    #     # world.render_configuration_space(ax2)
-    #     world.set_time(t)
-    #     plt.pause(0.1)
-    #     ax1.cla()
-    #     # ax2.cla()
+
+    # render_world(world, ax1)
+    # # world.render_configuration_space(ax2)
+    # world.set_time(t)
+    # plt.pause(0.1)
+    # ax1.cla()
+    # # ax2.cla()
