@@ -43,7 +43,7 @@ class RRTPlanner:
         i_nearest, state_nearest = self.space.find_nearest_state(self.tree.get_vertices(), state_free)
         if i_nearest is None or state_nearest is None:
             return
-        status, local_path = self.local_planner.plan(
+        status, local_path, local_path_transition_data = self.local_planner.plan(
             self.space,
             state_nearest,
             state_free,
@@ -51,8 +51,8 @@ class RRTPlanner:
         )
         if status != LocalPlannerStatus.TRAPPED:
             i_parent = i_nearest
-            for state_new in local_path:
-                edge_cost = self.space.transition_cost(state_new, self.tree.vertices[i_parent])
+            for state_new, transition_data in zip(local_path, local_path_transition_data):
+                edge_cost = self.space.transition_cost(state_new, self.tree.vertices[i_parent], transition_data)
                 if self.can_run() and not self.tree.vertex_exists(state_new):
                     i_new = self.tree.append_vertex(
                         state_new, i_parent=i_parent, edge_cost=edge_cost

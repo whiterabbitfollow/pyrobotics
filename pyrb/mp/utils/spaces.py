@@ -29,10 +29,15 @@ class RealVectorStateSpace:
             if self.world.is_collision_free_state(state):
                 return state
 
-    def is_collision_free_transition(self, state_src, state_dst, min_step_size):
+    def is_collision_free_transition(self, state_src, state_dst, min_step_size, return_distance=False):
         dist = np.linalg.norm(state_dst - state_src)
         nr_coll_steps = max(int(dist/min_step_size), 1)
-        return self.world.is_collision_free_transition(state_src, state_dst, nr_coll_steps=nr_coll_steps)
+        return self.world.is_collision_free_transition(
+            state_src,
+            state_dst,
+            nr_coll_steps=nr_coll_steps,
+            return_distance=return_distance
+        )
 
     def distance(self, state_1, state_2):
         return np.linalg.norm(state_1 - state_2)
@@ -40,14 +45,14 @@ class RealVectorStateSpace:
     def distances(self, state, *, states):
         return np.linalg.norm(state - states, axis=1)
 
-    def transition_cost(self, state_1, state_2):
-        return self.distance(state_1, state_2)
+    def transition_cost(self, state_1, state_2, transition_data):
+        return self.distance(state_1, state_2) + transition_data
 
-    def transition_cost_dst_many(self, state_src, states_dst):
-        return np.linalg.norm(state_src - states_dst, axis=1)
+    def transition_cost_dst_many(self, state_src, states_dst, transition_data):
+        return np.linalg.norm(state_src - states_dst, axis=1) + transition_data
 
-    def transition_cost_src_many(self, states_src, state_dst):
-        return np.linalg.norm(states_src - state_dst, axis=1)
+    def transition_cost_src_many(self, states_src, state_dst, transition_data):
+        return np.linalg.norm(states_src - state_dst, axis=1) + transition_data
 
 
 class RealVectorTimeSpace:
@@ -110,10 +115,12 @@ class RealVectorTimeSpace:
     def detransition(self, t, dt=1):
         return max(t - dt, 0)
 
-    def is_collision_free_transition(self, state_src, state_dst, min_step_size):
+    def is_collision_free_transition(self, state_src, state_dst, min_step_size, return_distance=False):
         dist = self.distance(state_src, state_dst)
         nr_coll_steps = max(int(dist / min_step_size), 2)
-        return self.world.is_collision_free_transition(state_src, state_dst, nr_coll_steps=nr_coll_steps)
+        return self.world.is_collision_free_transition(
+            state_src, state_dst, nr_coll_steps=nr_coll_steps, return_distance=return_distance
+        )
 
     def linspace(self, state_src, state_dst, nr_points):
         return np.linspace(state_src, state_dst, nr_points)
@@ -130,23 +137,26 @@ class RealVectorTimeSpace:
     def is_valid_time_direction(self, t_src, t_dst):
         return t_dst > t_src
 
-    def transition_cost(self, state_src, state_dst):
+    def transition_cost(self, state_src, state_dst, transition_data=None):
+        transition_data = transition_data or 0
         nr_time_steps = np.abs(state_dst[-1] - state_src[-1]) * self.gamma
         if self.goal_region and self.goal_region.is_config_within(state_dst):
-            return nr_time_steps
+            return nr_time_steps + transition_data
         distance = np.linalg.norm(state_src[:-1] - state_dst[:-1])
-        cost = distance + nr_time_steps
+        cost = distance + nr_time_steps + transition_data
         return cost
 
-    def transition_cost_src_many(self, states_src, state_dst):
+    def transition_cost_src_many(self, states_src, state_dst, transition_data=None):
         nr_time_steps = np.abs(state_dst[-1] - states_src[:, -1]) * self.gamma
+        if transition_data is not None:
+            nr_time_steps += transition_data
         if self.goal_region and self.goal_region.is_config_within(state_dst):
             return nr_time_steps
         distances = np.linalg.norm(states_src[:, :-1] - state_dst[:-1], axis=1)
         costs = distances + nr_time_steps
         return costs
 
-    def transition_cost_dst_many(self, state_src, states_dst):
+    def transition_cost_dst_many(self, state_src, states_dst, transition_data=None):
         n = states_dst.shape[0]
         mask_within = self.goal_region.are_configs_within(states_dst) if self.goal_region else np.zeros(n).astype(bool)
         mask = ~mask_within
@@ -154,8 +164,9 @@ class RealVectorTimeSpace:
         distances = np.linalg.norm(state_src[:-1] - states_dst[mask, :-1], axis=1)
         costs = nr_time_steps
         costs[mask] += distances
+        if transition_data is not None:
+            costs += transition_data
         return costs
-
 
 
 class RealVectorPastTimeSpace(RealVectorTimeSpace):

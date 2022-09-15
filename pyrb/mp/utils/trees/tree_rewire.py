@@ -14,53 +14,61 @@ class TreeRewire(Tree):
         self.local_planner = local_planner
 
     def append_vertex_without_rewiring(self, state, i_parent, edge_cost):
-        super().append_vertex(state, i_parent, edge_cost=edge_cost)
+        return super().append_vertex(state, i_parent, edge_cost=edge_cost)
 
     def append_vertex(self, state, i_parent, edge_cost):
-        i_new = self.vert_cnt
-        i_nearest = i_parent
         indxs_states_nearest = self.space.get_nearest_states_indices(
             states=self.get_vertices(), state=state, nearest_radius=self.nearest_radius
         )
-        indxs_states_nearest_coll_free = self.get_collision_free_nearest_indices(
+        indxs_states_nearest_coll_free, transition_data_nearest = self.get_collision_free_nearest_indices(
             state, indxs_states_nearest
         )
-        indxs_states_all_coll_free = np.append(indxs_states_nearest_coll_free, i_nearest)  # TODO: Not sure this is needed
-        self.wire_new_through_nearest(state, indxs_states_all_coll_free)
-        self.rewire_nearest_through_new(i_new, state, indxs_states_nearest_coll_free)
+        if indxs_states_nearest_coll_free.size:
+            i_new = self.wire_new_through_nearest(state, indxs_states_nearest_coll_free, transition_data_nearest)
+
+            self.rewire_nearest_through_new(i_new, state, indxs_states_nearest_coll_free, transition_data_nearest)
+        else:
+            i_new = super().append_vertex(state, i_parent=i_parent, edge_cost=edge_cost)
         return i_new
 
     def get_collision_free_nearest_indices(self, state_new, indxs_states_nearest):
-        indxs_states_nearest_mask = []
+        indxs_states_nearest_collision_free = []
+        all_transition_data = []
         for indx_state_nearest in indxs_states_nearest:
             state_nearest = self.vertices[indx_state_nearest].ravel()
-            status, path = self.local_planner.plan(
+            status, path, transition_data = self.local_planner.plan(
                 space=self.space,
                 state_src=state_nearest,
                 state_dst=state_new,
                 max_distance=np.inf
             )
-            successful_plan = status == LocalPlannerStatus.REACHED
-            indxs_states_nearest_mask.append(successful_plan)
-        return indxs_states_nearest[indxs_states_nearest_mask]
+            if status == LocalPlannerStatus.REACHED:
+                indxs_states_nearest_collision_free.append(indx_state_nearest)
+                all_transition_data.append(np.max(transition_data))
+        return np.array(indxs_states_nearest_collision_free, dtype=int), np.array(all_transition_data)
 
-    def wire_new_through_nearest(self, state_new, indxs_states_all_coll_free):
-        best_indx, best_edge_cost = self.find_nearest_indx_with_shortest_path(indxs_states_all_coll_free, state_new)
-        super().append_vertex(state_new, i_parent=best_indx, edge_cost=best_edge_cost)
+    def wire_new_through_nearest(self, state_new, indxs_states_all_coll_free, transition_data_nearest):
+        best_indx, best_edge_cost = self.find_nearest_indx_with_shortest_path(
+            indxs_states_all_coll_free, state_new, transition_data_nearest
+        )
+        return super().append_vertex(state_new, i_parent=best_indx, edge_cost=best_edge_cost)
 
-    def find_nearest_indx_with_shortest_path(self, indxs_states_nearest_coll_free, state_new):
+    def find_nearest_indx_with_shortest_path(self, indxs_states_nearest_coll_free, state_new, transition_data_nearest):
         states_nearest = self.vertices[indxs_states_nearest_coll_free]
-        edge_costs = self.space.transition_cost_src_many(states_src=states_nearest, state_dst=state_new)
+        edge_costs = self.space.transition_cost_src_many(
+            states_src=states_nearest, state_dst=state_new, transition_data=transition_data_nearest
+        )
         total_cost_to_new_through_nearest = self.cost_to_verts[indxs_states_nearest_coll_free] + edge_costs
         best_indx_in_subset = np.argmin(total_cost_to_new_through_nearest)
         best_indx = indxs_states_nearest_coll_free[best_indx_in_subset]
         best_edge_cost = edge_costs[best_indx_in_subset]
-
         return best_indx, best_edge_cost
 
-    def rewire_nearest_through_new(self, i_new, state_new, indxs_states_nearest_coll_free):
+    def rewire_nearest_through_new(self, i_new, state_new, indxs_states_nearest_coll_free, transition_data_nearest):
         states_nearest = self.vertices[indxs_states_nearest_coll_free]
-        edge_costs = self.space.transition_cost_dst_many(state_src=state_new, states_dst=states_nearest)
+        edge_costs = self.space.transition_cost_dst_many(
+            state_src=state_new, states_dst=states_nearest, transition_data=transition_data_nearest
+        )
         cost_through_new = self.cost_to_verts[i_new] + edge_costs
         old_costs = self.cost_to_verts[indxs_states_nearest_coll_free]
         mask = cost_through_new < old_costs
@@ -77,44 +85,49 @@ class TreeRewireSpaceTime(TreeRewire):
         super().__init__(*args, **kwargs)
 
     def append_vertex(self, state, i_parent, edge_cost):
-        i_new = self.vert_cnt
         indxs_past = self.get_nearest_past_states_indices(state)
-        indxs_past_coll_free = self.get_collision_free_past_nearest_indices(state, indxs_past)
-        indxs_past_coll_free = np.append(indxs_past_coll_free, i_parent)
-        self.wire_new_through_nearest(state, indxs_past_coll_free)
-
+        if i_parent not in indxs_past:
+            indxs_past = np.append(indxs_past, i_parent)
+        indxs_past_coll_free, transition_data = self.get_collision_free_past_nearest_indices(state, indxs_past)
+        i_new = self.wire_new_through_nearest(state, indxs_past_coll_free, transition_data)
         indxs_future = self.get_nearest_future_states_indices(state)
-        indxs_future_coll_free = self.get_collision_free_future_nearest_indices(state, indxs_future)
-        self.rewire_nearest_through_new(i_new, state, indxs_future_coll_free)
+        indxs_future_coll_free, transition_data = self.get_collision_free_future_nearest_indices(i_new, state, indxs_future)
+        self.rewire_nearest_through_new(i_new, state, indxs_future_coll_free, transition_data)
         return i_new
 
     def get_collision_free_past_nearest_indices(self, state_new, indxs_states_nearest):
-        indxs_states_nearest_mask = []
+        indxs_states_nearest_collision_free = []
+        all_transition_data = []
         for indx_state_nearest in indxs_states_nearest:
             state_nearest = self.vertices[indx_state_nearest].ravel()
-            status, path = self.local_planner.plan(
+            status, path, transition_data = self.local_planner.plan(
                 space=self.space,
                 state_src=state_nearest,
                 state_dst=state_new,
                 max_distance=np.inf
             )
             successful_plan = status == LocalPlannerStatus.REACHED
-            indxs_states_nearest_mask.append(successful_plan)
-        return indxs_states_nearest[indxs_states_nearest_mask]
+            if successful_plan:
+                indxs_states_nearest_collision_free.append(indx_state_nearest)
+                all_transition_data.append(np.max(transition_data))
+        return np.array(indxs_states_nearest_collision_free, dtype=int), np.array(all_transition_data)
 
-    def get_collision_free_future_nearest_indices(self, state_new, indxs_states_nearest):
-        indxs_states_nearest_mask = []
+    def get_collision_free_future_nearest_indices(self, i_new, state_new, indxs_states_nearest):
+        indxs_states_nearest_collision_free = []
+        all_transition_data = []
         for indx_state_nearest in indxs_states_nearest:
             state_nearest = self.vertices[indx_state_nearest].ravel()
-            status, path = self.local_planner.plan(
+            status, path, transition_data = self.local_planner.plan(
                 space=self.space,
                 state_src=state_new,
                 state_dst=state_nearest,
                 max_distance=np.inf
             )
             successful_plan = status == LocalPlannerStatus.REACHED
-            indxs_states_nearest_mask.append(successful_plan)
-        return indxs_states_nearest[indxs_states_nearest_mask]
+            if successful_plan:
+                indxs_states_nearest_collision_free.append(indx_state_nearest)
+                all_transition_data.append(np.max(transition_data))
+        return np.array(indxs_states_nearest_collision_free, dtype=int), np.array(all_transition_data)
 
     def get_nearest_past_states_indices(self, state):
         nearest_radius = self.local_planner.max_actuation
