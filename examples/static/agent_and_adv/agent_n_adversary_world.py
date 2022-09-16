@@ -10,7 +10,7 @@ from pyrb.mp.base_agent import MotionPlanningAgentActuated
 from pyrb.mp.base_world import BaseMPTimeVaryingWorld, WorldData2D
 
 
-class AgentAdversary2DWorld(BaseMPTimeVaryingWorld):
+class AgentAdversary2DStaticWorld(BaseMPTimeVaryingWorld):
 
     def __init__(self, robot=None, obstacles=None):
         data = WorldData2D((-1, 1), (-1, 1))
@@ -81,55 +81,15 @@ class AgentAdversary2DWorld(BaseMPTimeVaryingWorld):
         distance = self.robot.collision_manager.min_distance_other(self.obstacles.collision_manager)
         return distance
 
+    def set_time(self, t):
+        pass
+
+    def is_collision_free_state(self, state):
+        return super().is_collision_free_state(np.append(state, self.t))
+
+
+    def set_static_time(self, t):
+        super().set_time(t)
 
 if __name__ == "__main__":
-
-    import matplotlib.pyplot as plt
-    import numpy as np
-    import matplotlib
-
-    # matplotlib.rc("font", size=30)
-    #
-    # np.random.seed(2)
-    #
-    # world = AgentAdversary2DWorld()
-    #
-    # world.reset()
-    # world.reset_config()
-    #
-    # config = world.robot.config
-    # t = 0
-    #
-    # world.robot.set_config(config)
-    # world.set_time(t)
-    #
-    # fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(40, 15))
-    # world.render_world(ax1)
-    # world.render_configuration_space(ax2)
-    # fig.tight_layout()
-    # plt.savefig("world_and_config.png")
-
-    matplotlib.rc("font", size=30)
-
-    np.random.seed(2)
-
-    world = AgentAdversary2DWorld()
-
-    world.reset()
-    world.reset_config()
-
-    config = world.robot.config
-    t = 0
-
-    world.robot.set_config(config)
-    world.set_time(t)
-
-    fig, ax1 = plt.subplots(1, 1, figsize=(15, 15))
-    world.render_world(ax1)
-    # world.render_configuration_space(ax2)
-    fig.tight_layout()
-    plt.savefig("world_and_config.png")
-
-
-
-
+    pass

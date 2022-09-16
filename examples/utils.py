@@ -63,11 +63,12 @@ def render_rrt_planner_results(ax1, ax2, world, planner, path, state_start, stat
 
 def plot_rrt_connect_planner_results(world, planner, path, state_start, state_goal, goal_region):
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 10))
-    render_rrt_planner_results(ax1, ax2, world, planner, path, state_start, state_goal, goal_region)
+    render_rrt_connect_planner_results(ax1, ax2, world, planner, path, state_start, state_goal, goal_region)
     plt.show()
 
 
 def render_rrt_connect_planner_results(ax1, ax2, world, planner, path, state_start, state_goal, goal_region):
+
     world.render_world(ax1)
     world.render_configuration_space(ax2)
 
