@@ -91,5 +91,6 @@ class AgentAdversary2DStaticWorld(BaseMPTimeVaryingWorld):
     def set_static_time(self, t):
         super().set_time(t)
 
+
 if __name__ == "__main__":
     pass
