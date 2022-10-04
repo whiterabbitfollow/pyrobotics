@@ -17,6 +17,7 @@ class AgentAdversary2DStaticWorld(BaseMPTimeVaryingWorld):
         robot_data = copy.deepcopy(DATA_MANIPULATOR_2DOF)
         robot = robot or MotionPlanningAgentActuated(robot_data, max_actuation=0.1)
         obstacles = obstacles or Mobile2DOFAdversaryManipulator()
+        self.start_config = None
         super().__init__(robot=robot, data=data, obstacles=obstacles)
 
     def render_world(self, ax):
@@ -51,10 +52,10 @@ class AgentAdversary2DStaticWorld(BaseMPTimeVaryingWorld):
         self.start_config = self.sample_collision_free_state()
         self.robot.set_config(self.start_config)
 
-    def render_configuration_space(self, ax, path=None):
+    def render_configuration_space(self, ax, path=None, resolution=100):
         joint_limits = self.robot.joint_limits
-        theta_raw_1 = np.linspace(joint_limits[0, 0], joint_limits[0, 1], 100)
-        theta_raw_2 = np.linspace(joint_limits[1, 0], joint_limits[1, 1], 100)
+        theta_raw_1 = np.linspace(joint_limits[0, 0], joint_limits[0, 1], resolution)
+        theta_raw_2 = np.linspace(joint_limits[1, 0], joint_limits[1, 1], resolution)
         theta_grid_1, theta_grid_2 = np.meshgrid(theta_raw_1, theta_raw_2)
         thetas = np.stack([theta_grid_1.ravel(), theta_grid_2.ravel()], axis=1)
         collision_mask = []
@@ -62,11 +63,13 @@ class AgentAdversary2DStaticWorld(BaseMPTimeVaryingWorld):
             self.robot.set_config(theta)
             collision = self.robot.collision_manager.in_collision_other(self.obstacles.collision_manager)
             collision_mask.append(not collision)
-        collision_mask = np.array(collision_mask).reshape(100, 100)
+        collision_mask = np.array(collision_mask).reshape(resolution, resolution)
         ax.pcolormesh(theta_grid_1, theta_grid_2, collision_mask)
-        ax.scatter(self.start_config[0], self.start_config[1], label="Config", s=100)
-        ax.scatter(self.robot.goal_state[0], self.robot.goal_state[1], s=100)
-        ax.add_patch(Circle(tuple(self.robot.goal_state), radius=0.1, color="red", alpha=0.1, label="Goal set"))
+        if self.start_config is not None:
+            ax.scatter(self.start_config[0], self.start_config[1], label="Config", s=100)
+        if self.robot.goal_state is not None:
+            ax.scatter(self.robot.goal_state[0], self.robot.goal_state[1], s=100)
+            ax.add_patch(Circle(tuple(self.robot.goal_state), radius=0.1, color="red", alpha=0.1, label="Goal set"))
         if path is not None:
             ax.plot(path[:, 0], path[:, 1], ls="-", marker=".", label="path")
         ax.set_title(r"Configuration space $\mathcal{C} \in \mathbb{R}^2$")
