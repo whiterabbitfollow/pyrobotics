@@ -73,5 +73,3 @@ class PlanningProblem:
             meta_data_planner=self.planner.get_planning_meta_data()
         )
         return path, data
-
-
