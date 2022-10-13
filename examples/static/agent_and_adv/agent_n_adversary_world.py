@@ -90,7 +90,6 @@ class AgentAdversary2DStaticWorld(BaseMPTimeVaryingWorld):
     def is_collision_free_state(self, state):
         return super().is_collision_free_state(np.append(state, self.t))
 
-
     def set_static_time(self, t):
         super().set_time(t)
 

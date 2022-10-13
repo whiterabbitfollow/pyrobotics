@@ -38,14 +38,17 @@ class RRTConnectPlanner:
         self.connected = False
 
     def initialize_planner(self, state_start, goal_region):
+        state_goal = goal_region.state
         self.state_start = state_start
         self.goal_region = goal_region
         self.found_path = False
         self.connected = False
         self.tree_start.add_vertex(state_start)
-        self.tree_goal.add_vertex(goal_region.state)
+        self.tree_goal.add_vertex(state_goal)
         self.tree_a = self.tree_start
         self.tree_b = self.tree_goal
+        # naive check at start
+        self.connect_trees(0, state_start)
 
     def can_run(self):
         return not self.tree_start.is_full() and not self.tree_goal.is_full()
