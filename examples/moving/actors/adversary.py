@@ -54,8 +54,10 @@ class MovingRobotAdversary(pyrb.robot.Manipulator):
     def truncate_time_step(self, time_step):
         return time_step % self.traj.shape[0]
 
-    def reset(self, seed=None):
-        if self.reset_mode == "random":
+    def reset(self, seed=None, traj=None):
+        if traj is not None:
+            self.traj = traj
+        elif self.reset_mode == "random":
             max_nr_retries = 10
             nr_retries = 0
             while True:
