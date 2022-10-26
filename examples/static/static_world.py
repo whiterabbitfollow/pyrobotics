@@ -9,7 +9,7 @@ from matplotlib.patches import Rectangle
 from dataclasses import dataclass
 
 from pyrb.mp.base_world import BaseMPWorld
-from pyrb.rendering.utils import robot_configuration_to_matplotlib_rectangles
+from pyrb.rendering.utils import robot_configuration_to_patch_collection
 from pyrb.robot import Manipulator
 
 
@@ -129,23 +129,16 @@ class StaticBoxesWorld(BaseMPWorld):
         plt.show()
 
     def render_world(self, ax):
-        rectangles = []
-        rectangles_params = robot_configuration_to_matplotlib_rectangles(self.robot)
-        for rectangles_param in rectangles_params:
-            rectangles.append(Rectangle(*rectangles_param))
-        ax.add_collection(PatchCollection(rectangles, color="blue", edgecolor="black"))
-
+        ax.add_collection(robot_configuration_to_patch_collection(self.robot, color="blue", edgecolor="black"))
         for angle_rad, link in zip(self.robot.config, self.robot.links):
             xy = link.frame[:2, 3]
             ax.scatter(xy[0], xy[1], color="black")
-
         static_obstacles = []
         for obs in self.obstacles.obstacles:
             p_local = np.array([-obs.width / 2, -obs.height / 2, 0])
             p_global = pyrb.kin.SE3_mul(obs.transform, p_local)
             static_obstacles.append(Rectangle(tuple(p_global)[:2], obs.width, obs.height, angle=np.rad2deg(obs.angle)))
         ax.add_collection(PatchCollection(static_obstacles, color="green"))
-
         ax.set_xlim(*self.data.x.to_tuple())
         ax.set_ylim(*self.data.y.to_tuple())
         ax.set_xlabel("x")

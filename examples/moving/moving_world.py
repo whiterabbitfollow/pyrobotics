@@ -7,9 +7,9 @@ import numpy as np
 
 import pyrb
 from examples.data.manipulators import DATA_MANIPULATOR_2DOF, DATA_MANIPULATOR_1DOF
-from examples.utils import render_manipulator_on_axis
 from pyrb.mp.base_agent import MotionPlanningAgentActuated
 from pyrb.mp.base_world import WorldData2D, BaseMPTimeVaryingWorld
+from pyrb.rendering.utils import robot_configuration_to_patch_collection
 
 
 class StaticBoxObstacle:
@@ -194,11 +194,11 @@ def render_world(world, ax):
     goal_config = world.robot.goal_state
     world.robot.set_config(goal_config)
     color = "blue"
-    render_manipulator_on_axis(ax, world.robot, color=color, alpha=0.1)
+    ax.add_collection(robot_configuration_to_patch_collection(world.robot, color=color, alpha=0.1))
 
     world.robot.set_config(curr_config)
     color = "blue"
-    render_manipulator_on_axis(ax, world.robot, color=color)
+    ax.add_collection(robot_configuration_to_patch_collection(world.robot, color=color))
 
     for angle_rad, link in zip(world.robot.config, world.robot.links):
         xy = link.frame[:2, 3]

@@ -1,9 +1,12 @@
+from matplotlib.collections import PatchCollection
+from matplotlib.patches import Rectangle
+
 import pyrb
 import numpy as np
 
 
-def robot_configuration_to_matplotlib_rectangles(robot):
-    boxes = []
+def robot_configuration_to_patch_collection(robot, **kwargs):
+    rectangles = []
     for i, link in enumerate(robot.links):
         if not link.has_geometry():
             continue
@@ -13,6 +16,6 @@ def robot_configuration_to_matplotlib_rectangles(robot):
         box_corner_lower_local = np.array([0, -height/2, 0])
         x, y, _ = pyrb.kin.SE3_mul(link.frame, box_corner_lower_local)
         angle = np.rad2deg(pyrb.kin.angle_from_SE3_rot_z(link.frame))
-        boxes.append(((x, y), width, height, angle))
-    return boxes
+        rectangles.append(Rectangle((x, y), width, height, angle))
+    return PatchCollection(rectangles, **kwargs)
 

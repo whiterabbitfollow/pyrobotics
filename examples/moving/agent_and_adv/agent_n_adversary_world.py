@@ -1,13 +1,11 @@
 import copy
-
-import numpy as np
 from matplotlib.patches import Circle
 
 from examples.moving.actors.adversary import Mobile2DOFAdversaryManipulator
-from examples.utils import render_manipulator_on_axis
 from examples.data.manipulators import DATA_MANIPULATOR_2DOF
 from pyrb.mp.base_agent import MotionPlanningAgentActuated
 from pyrb.mp.base_world import BaseMPTimeVaryingWorld, WorldData2D
+from pyrb.rendering.utils import robot_configuration_to_patch_collection
 
 
 class AgentAdversary2DWorld(BaseMPTimeVaryingWorld):
@@ -22,14 +20,11 @@ class AgentAdversary2DWorld(BaseMPTimeVaryingWorld):
     def render_world(self, ax):
         curr_config = self.robot.config.copy()
         goal_config = self.robot.goal_state
-
         self.robot.set_config(goal_config)
-        render_manipulator_on_axis(ax, self.robot, color="blue", alpha=0.1)
-
+        ax.add_collection(robot_configuration_to_patch_collection(self.robot, color="blue", alpha=0.1))
         self.robot.set_config(curr_config)
-        render_manipulator_on_axis(ax, self.robot, color="blue")
-
-        render_manipulator_on_axis(ax, self.obstacles, color="green")
+        ax.add_collection(robot_configuration_to_patch_collection(self.robot, color="blue"))
+        ax.add_collection(robot_configuration_to_patch_collection(self.obstacles, color="green"))
         # ax.set_xlim(*self.data.x.to_tuple())
         # ax.set_ylim(*self.data.y.to_tuple())
         ax.set_xlim(*self.data.x.to_tuple())
