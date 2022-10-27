@@ -30,3 +30,10 @@ def interpolate_along_line(config_src, config_dst, max_distance_per_step):
     config_dst_many = np.tile(config_dst.reshape(1, -1), (nr_steps, 1))
     configs = (1 - betas) * config_src_many + betas * config_dst_many
     return configs
+
+
+def interpolate_single_point_along_line(config_src, config_dst, distance_to_point):
+    distance_line = np.linalg.norm(config_dst - config_src)
+    beta = distance_to_point / distance_line
+    return (1 - beta) * config_src + beta * config_dst
+

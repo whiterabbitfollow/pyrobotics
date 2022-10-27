@@ -183,10 +183,9 @@ def post_process_path_continuous(
 def sample_line_uniformly_on_path(path):
     path_distances = np.linalg.norm(path[1:] - path[:-1], axis=1)
     path_cumsum = np.cumsum(path_distances)
-    total_distance = path_distances.sum()
     distance_x = np.random.uniform(0, path_cumsum[-2])
-    i_segment = np.where((path_cumsum >= distance_x))[0][0]
-    distance_y = np.random.uniform(path_cumsum[i_segment + 1], total_distance)
+    i_segment = np.where((distance_x <= path_cumsum))[0][0]
+    distance_y = np.random.uniform(path_cumsum[i_segment + 1], path_cumsum[-1])
     j_segment = i_segment + 1 + np.where((distance_y <= path_cumsum[i_segment + 1:]))[0][0]
     x = interpolate_point_from_distance(distance_x, i_segment, path, path_cumsum)
     y = interpolate_point_from_distance(distance_y, j_segment, path, path_cumsum)
