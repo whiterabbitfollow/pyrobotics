@@ -6,8 +6,8 @@ import matplotlib.pyplot as plt
 
 
 from examples.static.static_world import StaticBoxesWorld
-from examples.utils import plot_rrt_planner_results, render_rrt_planner_results
-from pyrb.mp.planners.problem import PlanningProblem
+from examples.utils import render_rrt_planner_results
+from pyrb.mp.problem import PlanningProblem
 from pyrb.mp.planners.rrt import RRT_PLANNER_LOGGER_NAME
 from pyrb.mp.planners.local_planners import LocalPlanner
 

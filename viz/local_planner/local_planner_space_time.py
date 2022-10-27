@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from pyrb.mp.planners.local_planners import LocalPlannerSpaceTime
-from pyrb.mp.planners.post_processing import post_process_path_space_time_systematic_minimal_time
+from pyrb.mp.post_processing import post_process_path_space_time_systematic_minimal_time
 from pyrb.mp.utils.goal_regions import RealVectorMinimizingTimeGoalRegion
 
 

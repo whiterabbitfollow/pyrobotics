@@ -1,16 +1,10 @@
-from matplotlib.patches import Rectangle
-
 from examples.moving.agent_and_adv.agent_n_adversary_world import AgentAdversary2DWorld
 from examples.moving.make import compile_all_planners, Planners
-from examples.moving.moving_world import MovingBox1DimWorld
-from examples.utils import render_tree
 import numpy as np
 import matplotlib.pyplot as plt
 
-from matplotlib.patches import Polygon
-
-from pyrb.mp.planners.problem import PlanningProblem
-from pyrb.mp.utils.goal_regions import RealVectorTimeGoalRegion, RealVectorMinimizingTimeGoalRegion
+from pyrb.mp.problem import PlanningProblem
+from pyrb.mp.utils.goal_regions import RealVectorTimeGoalRegion
 from pyrb.mp.utils.spaces import RealVectorTimeSpace, RealVectorPastTimeSpace
 from pyrb.mp.utils.trees.tree import Tree
 #

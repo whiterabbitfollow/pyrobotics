@@ -3,8 +3,8 @@ import tqdm
 
 from examples.moving.agent_and_adv.agent_n_adversary_world import AgentAdversary2DWorld
 from examples.moving.make import compile_all_planners, Planners
-from pyrb.mp.planners.problem import PlanningProblem
-from pyrb.mp.utils.goal_regions import RealVectorTimeGoalRegion, RealVectorMinimizingTimeGoalRegion
+from pyrb.mp.problem import PlanningProblem
+from pyrb.mp.utils.goal_regions import RealVectorMinimizingTimeGoalRegion
 from pyrb.mp.utils.spaces import RealVectorTimeSpace, RealVectorPastTimeSpace
 
 

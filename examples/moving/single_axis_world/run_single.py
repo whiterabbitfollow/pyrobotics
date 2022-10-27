@@ -1,20 +1,18 @@
 from matplotlib.patches import Rectangle
 
-from examples.moving.make import compile_all_planners, Planners
+from examples.moving.make import Planners
 from examples.moving.moving_world import MovingBox1DimWorld
 from examples.utils import render_tree
 from pyrb.mp.planners.local_planners import LocalPlannerSpaceTime
-from pyrb.mp.planners.post_processing import post_process_path_space_time_minimal_time
-from pyrb.mp.planners.problem import PlanningProblem
+from pyrb.mp.problem import PlanningProblem
 import numpy as np
 import matplotlib.pyplot as plt
 
 from matplotlib.patches import Polygon
 
 from pyrb.mp.planners.rrt import RRTPlanner
-from pyrb.mp.utils.goal_regions import RealVectorTimeGoalRegion, RealVectorMinimizingTimeGoalRegion
+from pyrb.mp.utils.goal_regions import RealVectorTimeGoalRegion
 from pyrb.mp.utils.spaces import RealVectorTimeSpace, RealVectorPastTimeSpace
-from pyrb.mp.utils.trees.tree import Tree
 from pyrb.mp.utils.trees.tree_rewire import TreeRewireSpaceTime
 
 np.random.seed(14)  # Challenging, solvable with ~200 steps...

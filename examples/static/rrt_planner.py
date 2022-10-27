@@ -1,6 +1,6 @@
 from examples.static.static_world import StaticBoxesWorld
 from examples.utils import plot_rrt_planner_results
-from pyrb.mp.planners.problem import PlanningProblem
+from pyrb.mp.problem import PlanningProblem
 from pyrb.mp.planners.rrt import RRTPlanner
 from pyrb.mp.utils.goal_regions import RealVectorGoalRegion
 from pyrb.mp.utils.spaces import RealVectorStateSpace

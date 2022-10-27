@@ -2,7 +2,7 @@ import numpy as np
 
 from examples.static.static_world import StaticBoxesWorld
 from examples.utils import render_rrt_connect_planner_results
-from pyrb.mp.planners.problem import PlanningProblem
+from pyrb.mp.problem import PlanningProblem
 from pyrb.mp.planners.local_planners import LocalPlanner
 from pyrb.mp.planners.rrt_connect import RRTInformedConnectPlanner
 from pyrb.mp.utils.goal_regions import RealVectorGoalRegion

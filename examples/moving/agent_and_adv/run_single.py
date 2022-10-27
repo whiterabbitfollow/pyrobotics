@@ -2,8 +2,8 @@ import numpy as np
 
 from examples.moving.agent_and_adv.agent_n_adversary_world import AgentAdversary2DWorld
 from examples.moving.make import compile_all_planners, Planners
-from pyrb.mp.planners.post_processing import post_process_path_space_time_minimal_time, LOGGER_NAME_POST_PROCESSING
-from pyrb.mp.planners.problem import PlanningProblem
+from pyrb.mp.post_processing import post_process_path_space_time_minimal_time, LOGGER_NAME_POST_PROCESSING
+from pyrb.mp.problem import PlanningProblem
 from pyrb.mp.utils.goal_regions import RealVectorMinimizingTimeGoalRegion, GOAL_REGIONS_LOGGER_NAME
 from pyrb.mp.utils.spaces import RealVectorTimeSpace, RealVectorPastTimeSpace
 

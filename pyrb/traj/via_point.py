@@ -8,6 +8,7 @@ def generate_random_trajectory(
         nr_points=500,
         start_pos=None
 ):
+    # TODO: not used anymore.... remove?
     nr_joints = joint_limits.shape[0]
     beta = np.hstack([np.random.uniform(l, u, (nr_via_points,)).reshape(-1, 1) for l, u in joint_limits])
     if start_pos is not None:
@@ -18,6 +19,7 @@ def generate_random_trajectory(
 
 
 def generate_cubic_coefficients_from_via_points_velocities(points, velocities, delta_t):
+    # TODO: not used anymore.... remove?
     beta = points
     beta_d = velocities
     coeffs = []

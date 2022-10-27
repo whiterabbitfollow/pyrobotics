@@ -138,8 +138,6 @@ def post_process_path_continuous(
     cnt = 0
     cnt_no_improvement = 0
     # start to naively tie together start and end of path
-    # i = 0
-    # j = path_pp.shape[0] - 1
     i_segment, j_segment, state_src, state_dst = 0, path.shape[0] - 2, path[0, :], path[-1, :]
     path_cost = compute_path_cost(path_pp)
     while cnt < max_cnt or cnt_no_improvement < max_cnt_no_improvement:
