@@ -1,8 +1,8 @@
 import numpy as np
 import tqdm
 
-from examples.moving.agent_and_adv.agent_n_adversary_world import AgentAdversary2DWorld
-from examples.moving.make import compile_all_planners, Planners
+from examples.space_time.agent_and_adv.agent_n_adversary_world import AgentAdversary2DWorld
+from examples.space_time.make import compile_all_planners, Planners
 from pyrb.mp.problem import PlanningProblem
 from pyrb.mp.utils.goal_regions import RealVectorMinimizingTimeGoalRegion
 from pyrb.mp.utils.spaces import RealVectorTimeSpace, RealVectorPastTimeSpace

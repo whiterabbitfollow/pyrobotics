@@ -1,7 +1,7 @@
 from matplotlib.patches import Rectangle
 
-from examples.moving.cylinder_world.cylinder_world import CylinderWorld
-from examples.moving.make import Planners
+from examples.space_time.make import Planners
+from examples.space_time.moving_world import MovingBox1DimWorld
 from examples.utils import render_tree
 from pyrb.mp.planners.local_planners import LocalPlannerSpaceTime
 from pyrb.mp.problem import PlanningProblem
@@ -17,28 +17,28 @@ from pyrb.mp.utils.trees.tree_rewire import TreeRewireSpaceTime
 
 np.random.seed(14)  # Challenging, solvable with ~200 steps...
 
-world = CylinderWorld()
+world = MovingBox1DimWorld()
 world.reset()
 
 
 PLANNING_TIME = 10
-TIME_HORIZON = 10
+TIME_HORIZON = 60
 
 #
 # 1.04719755
 
 # goal_region = RealVectorMinimizingTimeGoalRegion()
-goal_region = RealVectorTimeGoalRegion(radius=1)
+goal_region = RealVectorTimeGoalRegion()
 
 state_space = RealVectorTimeSpace(
-    world, world.robot.state_dim, world.robot.joint_limits, max_time=TIME_HORIZON, goal_region=goal_region
+    world, world.robot.nr_joints, world.robot.joint_limits, max_time=TIME_HORIZON, goal_region=goal_region
 )
 
 state_space_start = RealVectorTimeSpace(
-    world, world.robot.state_dim, world.robot.joint_limits, max_time=TIME_HORIZON, goal_region=goal_region
+    world, world.robot.nr_joints, world.robot.joint_limits, max_time=TIME_HORIZON, goal_region=goal_region
 )
 state_space_goal = RealVectorPastTimeSpace(
-    world, world.robot.state_dim, world.robot.joint_limits, max_time=TIME_HORIZON, goal_region=goal_region
+    world, world.robot.nr_joints, world.robot.joint_limits, max_time=TIME_HORIZON, goal_region=goal_region
 )
 
 planner_name = Planners.RRT_STAR
@@ -48,7 +48,7 @@ local_planner = LocalPlannerSpaceTime(
         # nr_time_steps=5,
         # min_path_distance=.3,
         min_coll_step_size=0.05,
-        max_distance=(1.0, 3),
+        max_distance=(1.0, 10),
         include_distance_to_obst=True
     )
 
@@ -57,18 +57,18 @@ planner = RRTPlanner(
     tree=TreeRewireSpaceTime(
         local_planner=local_planner,
         space=state_space,
-        nearest_radius=4.0,
-        nearest_time_window=5,
-        max_nr_vertices=int(1e5)
+        nearest_radius=1.0,
+        nearest_time_window=10,
+        max_nr_vertices=int(1e4)
     ),
     local_planner=local_planner
 )
 
 
 problem = PlanningProblem(planner)
-start_config = np.array([0])
+start_config = world.robot.config
 state_start = np.append(start_config, 0)
-goal_config = np.array([0])
+goal_config = world.robot.goal_state
 
 state_goal = np.append(goal_config, TIME_HORIZON)
 # state_goal = np.append(start_config, TIME_HORIZON)
@@ -80,22 +80,9 @@ goal_region.set_goal_state(state_goal)
 path, data = problem.solve(
     state_start,
     goal_region,
-    min_planning_time=0,
-    max_planning_time=5
+    min_planning_time=10,
+    max_planning_time=20
 )
-
-
-#
-# planner.tree.set_root_vertex(np.array(state_start))
-#
-#
-# s1 = np.array([0, 0])
-# s2 = np.array([-2, 2])
-# status, path, transition_data = local_planner.plan(state_space_start, s1, s2)
-# print(transition_data)
-# planner.tree.append_vertex(s2, 0, 0)
-
-
 print("Planning done, pre processing path")
 
 path_pp = np.array([])
@@ -111,7 +98,8 @@ path_pp = np.array([])
 
 fig, ax = plt.subplots(1, 1, figsize=(10, 10))
 
-world.render_configuration_space(ax)
+world.create_space_time_map(time_horizon=TIME_HORIZON)
+world.render_configuration_space(ax, time_horizon=TIME_HORIZON)
 
 
 if planner_name in (Planners.RRT_STAR_CONNECT_PARTIAL, Planners.RRT_CONNECT, Planners.RRT_STAR_INFORMED_CONNECT_PARTIAL):
@@ -133,6 +121,9 @@ for tree, color in tree_data:
     verts, edges = tree.get_vertices(), tree.get_edges()
     render_tree(ax, verts, edges, color=color)
 
+
+if path.size > 0:
+    ax.plot(path[:, 0], path[:, 1], color="orange", label="path", lw=2, ls="--", marker=".")
 
 if path_pp.size > 0:
     ax.plot(path_pp[:, 0], path_pp[:, 1], color="red", label="path", lw=2, ls="--", marker=".")
@@ -159,6 +150,11 @@ polygon_values = np.array([
 ax.add_patch(
     Polygon(polygon_values, alpha=0.1)
 )
+
+
+if path.size and planner_name == Planners.RRT_STAR_INFORMED_CONNECT_PARTIAL:
+    vals = draw_unit_ball(planner)
+    ax.plot(vals[:, 0], vals[:, 1])
 
 plt.show()
 

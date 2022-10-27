@@ -3,7 +3,7 @@ import copy
 import numpy as np
 from matplotlib.patches import Circle
 
-from examples.moving.actors.adversary import Mobile2DOFAdversaryManipulator
+from examples.space_time.actors.adversary import Mobile2DOFAdversaryManipulator
 from examples.data.manipulators import DATA_MANIPULATOR_2DOF
 from pyrb.mp.base_agent import MotionPlanningAgentActuated
 from pyrb.mp.base_world import BaseMPTimeVaryingWorld, WorldData2D

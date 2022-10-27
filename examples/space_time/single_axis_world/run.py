@@ -1,7 +1,7 @@
 from matplotlib.patches import Rectangle
 
-from examples.moving.make import compile_all_planners, Planners
-from examples.moving.moving_world import MovingBox1DimWorld
+from examples.space_time.make import compile_all_planners, Planners
+from examples.space_time.moving_world import MovingBox1DimWorld
 from examples.utils import render_tree
 from pyrb.mp.problem import PlanningProblem
 import numpy as np
