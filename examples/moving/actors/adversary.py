@@ -5,6 +5,7 @@ import time
 import copy
 
 from examples.data.manipulators import DATA_MANIPULATOR_2DOF, DATA_MANIPULATOR_3DOF
+from pyrb.traj import via_point
 
 
 class MovingRobotAdversary(pyrb.robot.Manipulator):
@@ -138,10 +139,10 @@ class MovingRobotAdversary(pyrb.robot.Manipulator):
 
     def create_segment_between_via_points(self, pose_start, velocity_start, pose_next, velocity_next):
         delta_t = 0.1
-        a_0, a_1, a_2, a_3 = pyrb.traj.calculate_cubic_coefficients_between_via_points(
+        a_0, a_1, a_2, a_3 = via_point.calculate_cubic_coefficients_between_via_points(
             pose_start, velocity_start, pose_next, velocity_next, delta_t
         )
-        segment_poses, spds, accs, jrks = pyrb.traj.interpolate_trajectory_from_cubic_coeffs(
+        segment_poses, spds, accs, jrks = via_point.interpolate_trajectory_from_cubic_coeffs(
             a_0, a_1, a_2, a_3,
             delta_t,
             nr_points=70
