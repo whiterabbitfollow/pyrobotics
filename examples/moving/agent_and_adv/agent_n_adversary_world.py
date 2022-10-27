@@ -1,5 +1,6 @@
 import copy
 from matplotlib.patches import Circle
+import numpy as np
 
 from examples.moving.actors.adversary import Mobile2DOFAdversaryManipulator
 from examples.data.manipulators import DATA_MANIPULATOR_2DOF
@@ -75,56 +76,3 @@ class AgentAdversary2DWorld(BaseMPTimeVaryingWorld):
     def get_current_config_smallest_obstacle_distance(self):
         distance = self.robot.collision_manager.min_distance_other(self.obstacles.collision_manager)
         return distance
-
-
-if __name__ == "__main__":
-
-    import matplotlib.pyplot as plt
-    import numpy as np
-    import matplotlib
-
-    # matplotlib.rc("font", size=30)
-    #
-    # np.random.seed(2)
-    #
-    # world = AgentAdversary2DWorld()
-    #
-    # world.reset()
-    # world.reset_config()
-    #
-    # config = world.robot.config
-    # t = 0
-    #
-    # world.robot.set_config(config)
-    # world.set_time(t)
-    #
-    # fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(40, 15))
-    # world.render_world(ax1)
-    # world.render_configuration_space(ax2)
-    # fig.tight_layout()
-    # plt.savefig("world_and_config.png")
-
-    matplotlib.rc("font", size=30)
-
-    np.random.seed(2)
-
-    world = AgentAdversary2DWorld()
-
-    world.reset()
-    world.reset_config()
-
-    config = world.robot.config
-    t = 0
-
-    world.robot.set_config(config)
-    world.set_time(t)
-
-    fig, ax1 = plt.subplots(1, 1, figsize=(15, 15))
-    world.render_world(ax1)
-    # world.render_configuration_space(ax2)
-    fig.tight_layout()
-    plt.savefig("world_and_config.png")
-
-
-
-
