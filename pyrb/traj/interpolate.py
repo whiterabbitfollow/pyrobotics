@@ -11,13 +11,18 @@ def interpolate_path(sparse_path, segment_interpolator):
 
 
 def interpolate_along_line_l_infty_dim_2(config_src, config_dst, max_distance_per_step_per_dim):
+    max_distance_per_step = compute_max_distance_l_infty_dim_2(config_src, config_dst, max_distance_per_step_per_dim)
+    return interpolate_along_line(config_src, config_dst, max_distance_per_step)
+
+
+def compute_max_distance_l_infty_dim_2(config_src, config_dst, dim_max_distance):
     w, h = np.abs((config_dst - config_src).ravel())
     angle = np.arctan2(h, w)
     if w > h:
-        max_distance_per_step = max_distance_per_step_per_dim / np.cos(angle)
+        distance_along_line = dim_max_distance / np.cos(angle)
     else:
-        max_distance_per_step = max_distance_per_step_per_dim / np.sin(angle)
-    return interpolate_along_line(config_src, config_dst, max_distance_per_step)
+        distance_along_line = dim_max_distance / np.sin(angle)
+    return distance_along_line
 
 
 def interpolate_along_line(config_src, config_dst, max_distance_per_step):
