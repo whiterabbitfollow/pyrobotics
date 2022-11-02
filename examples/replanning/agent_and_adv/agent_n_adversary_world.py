@@ -45,13 +45,15 @@ class ReplanningAgentAdversary2DWorld(BaseMPWorld):
         if seed is not None:
             random_state = np.random.get_state()
             np.random.seed(seed)
+        self.reset_config()
+        self.set_time(0)    # TODO: sample time?
+        if seed is not None:
+            np.random.set_state(random_state)
+
+    def reset_config(self):
         self.goal_config = self.sample_collision_free_state()
         self.start_config = self.sample_collision_free_state()
         self.robot.set_config(self.start_config)
-        self.t = 0  # TODO: sample time?
-        self.obstacles.set_time(self.t)
-        if seed is not None:
-            np.random.set_state(random_state)
 
     def set_start_config(self, start_config):
         self.start_config = start_config
@@ -65,6 +67,7 @@ class ReplanningAgentAdversary2DWorld(BaseMPWorld):
         )
         if collision_free:
             self.start_config = config_nxt
+        self.set_time(self.t + 1)
         return collision_free
 
     def is_collision_free_time_step_transition(self, state_src, state_dst, nr_coll_steps=10):

@@ -1,7 +1,9 @@
 import time
+from itertools import product
 
-from pyrb.mp.planners.rrt_connect import RRTConnectPlanner
-from pyrb.traj.interpolate import interpolate_single_point_along_line
+from pyrb.traj.interpolate import interpolate_single_point_along_line, compute_max_distance_l_infty_dim_2
+
+import numpy as np
 
 
 def start_timer():
@@ -22,11 +24,10 @@ class BaseReRRT:
         self.planner = rrt_planner
         self.goal_region = goal_region
 
-    def find_path(self, start_config, goal_config, path_initialize=None, max_planning_time=1):
+    def find_path(self, path_initialize=None, max_planning_time=1):
         time_s, time_elapsed = start_timer()
-        self.world.set_start_config(start_config)
-        self.goal_region.set_goal_state(goal_config)
         self.planner.clear()
+        start_config = self.world.start_config
         self.planner.initialize_planner(start_config, self.goal_region)
         if path_initialize is not None and path_initialize.size > 0:
             path_validated = self.validate_path(path_initialize)
@@ -62,11 +63,10 @@ class BaseReRRT:
         solved = False
         collision_free = True
         step_nr = 0
-        self.world.start_config = start_config
+        self.world.set_start_config(start_config)
+        self.goal_region.set_goal_state(goal_config)
         while not solved and collision_free and step_nr < max_steps:
             path = self.find_path(
-                self.world.start_config,
-                goal_config,
                 max_planning_time=max_planning_time_per_step
             )
             collision_free, solved = self.step_along_path(path)
@@ -81,23 +81,10 @@ class BaseReRRT:
 
 class ReRRT(BaseReRRT):
 
-    def __init__(self, *args, max_step_distance, distance_thr, **kwargs):
+    def __init__(self, *args, max_step_distance, obstacles_distance_thr, **kwargs):
         super().__init__(*args, **kwargs)
         self.max_step_distance = max_step_distance
-        self.distance_thr = distance_thr
-
-    def find_path(self, start_config, goal_config, path_initialize=None, max_planning_time=1):
-        path = super().find_path(start_config, goal_config, path_initialize, max_planning_time)
-        if path.shape[0] > 2:
-            path = post_process_path_continuous_sampling(
-                path,
-                self.planner.space,
-                self.planner.local_planner,
-                self.goal_region,
-                max_cnt=100,
-                max_cnt_no_improvement=0
-            )
-        return path
+        self.distance_thr = obstacles_distance_thr
 
     def step_along_path(self, path):
         if path.size:
@@ -107,6 +94,7 @@ class ReRRT(BaseReRRT):
         return self.step_delta_config(delta_config)
 
     def compute_step_along_path(self, path):
+        # TODO: This implementation should be part of imitation learning
         distance_along_path = compute_max_distance_l_infty_dim_2(
             config_src=path[0, :], config_dst=path[1, :],
             dim_max_distance=self.max_step_distance
@@ -119,6 +107,7 @@ class ReRRT(BaseReRRT):
         return delta_config
 
     def compute_step_no_path_found(self):
+        world = self.world
         nr_joints = world.robot.nr_joints
         world.robot.set_config(world.start_config)
         distance = world.get_current_config_smallest_obstacle_distance()
@@ -129,15 +118,19 @@ class ReRRT(BaseReRRT):
         return delta_config_max_distance
 
     def compute_step_with_max_distance(self, distance):
-        nr_joints = self.world.robot.nr_joints
-        delta_configs = list(product(*([(-max_step_distance, 0, max_step_distance)] * nr_joints)))
+        world = self.world
+        nr_joints = world.robot.nr_joints
+        max_step_distance = world.robot.max_actuation
+        delta_configs = list(
+            product(*([(-max_step_distance, 0, max_step_distance)] * nr_joints))
+        )
         delta_configs.remove(tuple([0] * nr_joints))
         delta_configs = np.array(delta_configs)
         distance_max = distance
         delta_config_max_distance = np.zeros((nr_joints,))
         for delta_config in delta_configs:
             config_nxt = world.start_config + delta_config
-            if not self.world.robot.is_configuration_feasible(config_nxt):
+            if not world.robot.is_configuration_feasible(config_nxt):
                 continue
             world.robot.set_config(config_nxt)
             distance = world.get_current_config_smallest_obstacle_distance()
@@ -155,72 +148,72 @@ class ReRRT(BaseReRRT):
 
 
 if __name__ == "__main__":
-    from examples.replanning.agent_and_adv.agent_n_adversary_world import ReplanningAgentAdversary2DWorld
-    from pyrb.mp.utils.spaces import RealVectorStateSpace
-    from pyrb.mp.utils.trees.tree import Tree
-    from pyrb.mp.planners.local_planners import LocalPlanner
-    from pyrb.mp.utils.goal_regions import RealVectorGoalRegion
-    from pyrb.mp.post_processing.post_processing import post_process_path_continuous_sampling
-    import numpy as np
-    from itertools import product
-    from pyrb.traj.interpolate import compute_max_distance_l_infty_dim_2
-
-    world = ReplanningAgentAdversary2DWorld()
-
-    state_space = RealVectorStateSpace(
-        world, world.robot.nr_joints, world.robot.joint_limits
-    )
-    # planner = RRTPlanner(
+    pass
+    # from examples.replanning.agent_and_adv.agent_n_adversary_world import ReplanningAgentAdversary2DWorld
+    # from pyrb.mp.utils.spaces import RealVectorStateSpace
+    # from pyrb.mp.utils.trees.tree import Tree
+    # from pyrb.mp.planners.local_planners import LocalPlanner
+    # from pyrb.mp.utils.goal_regions import RealVectorGoalRegion
+    # from pyrb.mp.post_processing.post_processing import post_process_path_continuous_sampling
+    # import numpy as np
+    #
+    #
+    # world = ReplanningAgentAdversary2DWorld()
+    #
+    # state_space = RealVectorStateSpace(
+    #     world, world.robot.nr_joints, world.robot.joint_limits
+    # )
+    # # planner = RRTPlanner(
+    # #     space=state_space,
+    # #     tree=Tree(max_nr_vertices=int(1e5), vertex_dim=state_space.dim),
+    # #     local_planner=local_planner
+    # # )
+    # max_step_distance = 0.1
+    # min_coll_step_size = 0.025
+    # planner = RRTConnectPlanner(
     #     space=state_space,
-    #     tree=Tree(max_nr_vertices=int(1e5), vertex_dim=state_space.dim),
-    #     local_planner=local_planner
+    #     tree_start=Tree(max_nr_vertices=int(1e4), vertex_dim=state_space.dim),
+    #     tree_goal=Tree(max_nr_vertices=int(1e4), vertex_dim=state_space.dim),
+    #     local_planner=LocalPlanner(
+    #         min_coll_step_size=min_coll_step_size,
+    #         max_distance=0.5
+    #     )
     # )
-    max_step_distance = 0.1
-    min_coll_step_size = 0.025
-    planner = RRTConnectPlanner(
-        space=state_space,
-        tree_start=Tree(max_nr_vertices=int(1e4), vertex_dim=state_space.dim),
-        tree_goal=Tree(max_nr_vertices=int(1e4), vertex_dim=state_space.dim),
-        local_planner=LocalPlanner(
-            min_coll_step_size=min_coll_step_size,
-            max_distance=0.5
-        )
-    )
-    max_cnt = 20,
-    max_cnt_no_improvement = 0
-    goal_region = RealVectorGoalRegion()
-    # post_process_func = partial(
-    #     post_process_path_continuous,
-    #     space=planner.space,
-    #     local_planner=planner.local_planner,
-    #     goal_region=goal_region
+    # max_cnt = 20,
+    # max_cnt_no_improvement = 0
+    # goal_region = RealVectorGoalRegion()
+    # # post_process_func = partial(
+    # #     post_process_path_continuous,
+    # #     space=planner.space,
+    # #     local_planner=planner.local_planner,
+    # #     goal_region=goal_region
+    # # )
+    # replanner = ReRRT(
+    #     world,
+    #     planner,
+    #     goal_region,
+    #     max_step_distance=max_step_distance,
+    #     distance_thr=0.1
     # )
-    replanner = ReRRT(
-        world,
-        planner,
-        goal_region,
-        max_step_distance=max_step_distance,
-        distance_thr=0.1
-    )
-    # world.start_config
-    #
-    # fig, (ax1, ax2) = plt.subplots(1, 2)
-    # world.render_world(ax1)
-    # world.render_configuration_space(ax2)
-    #
-    # if path.size:
-    #     ax2.plot(path[:, 0], path[:, 1])
-    #     ax2.plot(path_pp[:, 0], path_pp[:, 1])
-    #
-    # plt.show()
-    solved_cnt = 0
-    path_acc = 0
-    step_acc = 0
-    cnt = 0
-    world.reset(seed=7)
-    print(world.obstacles.traj[:10, :])
-    print(world.start_config)
-    print(world.goal_config)
+    # # world.start_config
+    # #
+    # # fig, (ax1, ax2) = plt.subplots(1, 2)
+    # # world.render_world(ax1)
+    # # world.render_configuration_space(ax2)
+    # #
+    # # if path.size:
+    # #     ax2.plot(path[:, 0], path[:, 1])
+    # #     ax2.plot(path_pp[:, 0], path_pp[:, 1])
+    # #
+    # # plt.show()
+    # solved_cnt = 0
+    # path_acc = 0
+    # step_acc = 0
+    # cnt = 0
+    # world.reset(seed=7)
+    # print(world.obstacles.traj[:10, :])
+    # print(world.start_config)
+    # print(world.goal_config)
 
 
 
