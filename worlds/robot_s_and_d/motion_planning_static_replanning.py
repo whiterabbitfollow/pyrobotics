@@ -110,7 +110,7 @@ while True:
     success_cnt += in_goal
     result_str = " ".join(
         [
-            "%s: %f.2"
+            "%s: %f.2" % (s, v)
             for s, v in zip(
             ["cnt", "success_rate", "coll_rate", "terminated_ratio"],
             [cnt, success_cnt / cnt, collision_cnt / cnt, terminated_cnt/cnt]
