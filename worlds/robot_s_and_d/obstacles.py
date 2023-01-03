@@ -25,7 +25,7 @@ class ObstacleDynamic:
         self.name = name
 
     def get_transform_at_time_step(self, ts):
-        i = ts % self.positions.shape[0]
+        i = int(ts) % self.positions.shape[0]   # TODO: need to interpolate between time steps
         p = self.positions[i, :]
         R = self.rotations[:, :, i].T
         return pyrb.kin.rot_trans_to_SE3(p=p, R=R)
@@ -161,7 +161,7 @@ class ObstacleManager:
         ts_end = self.dynamic_obstacles[0].positions.shape[0]
         remove_meshes = []
         for ts in range(ts_end):
-            self.set_obstacles_at_time_step(ts)
+            self.set_time(ts)
             collision, names = self.collision_manager.in_collision_other(
                 collision_manager_static, return_names=True
             )
@@ -193,10 +193,10 @@ class ObstacleManager:
             obstacle.name = name
 
     def is_collision_free_time_step(self, ts, mesh):
-        self.set_obstacles_at_time_step(ts)
+        self.set_time(ts)
         return not self.collision_manager.in_collision_single(mesh)
 
-    def set_obstacles_at_time_step(self, ts):
+    def set_time(self, ts):
         for i, o in enumerate(self.dynamic_obstacles):
             T = o.get_transform_at_time_step(ts)
             self.collision_manager.set_transform(name=o.name, transform=T)

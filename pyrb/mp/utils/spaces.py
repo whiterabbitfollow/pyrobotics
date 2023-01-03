@@ -92,6 +92,17 @@ class RealVectorTimeSpace:
     def get_nearest_states_indices(self, states, state, nearest_radius):
         raise NotImplementedError()
 
+    def sample_collision_free_config(self):
+        config_dim = self.world.robot.nr_joints
+        time_dim = 1
+        state = np.zeros((config_dim + time_dim, ))
+        state[-1] = self.world.t
+        while True:
+            state[:config_dim] = np.random.uniform(self.limits[:, 0], self.limits[:, 1])
+            if self.world.is_collision_free_state(state):
+                config = state[:config_dim]
+                return config
+
     def sample_collision_free_state(self):
         time_horizon = self.max_time
         if self.goal_region is not None and np.isfinite(self.goal_region.time_horizon):
