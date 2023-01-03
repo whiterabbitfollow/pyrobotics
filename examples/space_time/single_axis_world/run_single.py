@@ -11,8 +11,9 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Polygon
 
 from pyrb.mp.planners.rrt import RRTPlanner
-from pyrb.mp.utils.goal_regions import RealVectorTimeGoalRegion
+from pyrb.mp.utils.goal_regions import RealVectorTimeGoalRegion, RealVectorMinimizingTimeGoalRegion
 from pyrb.mp.utils.spaces import RealVectorTimeSpace, RealVectorPastTimeSpace
+from pyrb.mp.utils.trees.tree import Tree
 from pyrb.mp.utils.trees.tree_rewire import TreeRewireSpaceTime
 
 np.random.seed(14)  # Challenging, solvable with ~200 steps...
@@ -27,8 +28,8 @@ TIME_HORIZON = 60
 #
 # 1.04719755
 
-# goal_region = RealVectorMinimizingTimeGoalRegion()
-goal_region = RealVectorTimeGoalRegion()
+goal_region = RealVectorMinimizingTimeGoalRegion()
+# goal_region = RealVectorTimeGoalRegion()
 
 state_space = RealVectorTimeSpace(
     world, world.robot.nr_joints, world.robot.joint_limits, max_time=TIME_HORIZON, goal_region=goal_region
@@ -48,21 +49,38 @@ local_planner = LocalPlannerSpaceTime(
         # nr_time_steps=5,
         # min_path_distance=.3,
         min_coll_step_size=0.05,
-        max_distance=(1.0, 10),
-        include_distance_to_obst=True
+        max_distance=(1.0, 10)
     )
+
+# planner = RRTPlanner(
+#     space=state_space,
+#     tree=TreeRewireSpaceTime(
+#         local_planner=local_planner,
+#         space=state_space,
+#         nearest_radius=1.0,
+#         nearest_time_window=10,
+#         max_nr_vertices=int(1e4)
+#     ),
+#     local_planner=local_planner
+# )
 
 planner = RRTPlanner(
     space=state_space,
-    tree=TreeRewireSpaceTime(
-        local_planner=local_planner,
+    tree=Tree(
         space=state_space,
-        nearest_radius=1.0,
-        nearest_time_window=10,
-        max_nr_vertices=int(1e4)
+        max_nr_vertices=int(1e4),
+        vertex_dim=state_space.dim
     ),
+    # tree=TreeRewireSpaceTime(
+    #     local_planner=local_planner,
+    #     space=state_space,
+    #     nearest_radius=1.0,
+    #     nearest_time_window=10,
+    #     max_nr_vertices=int(1e4)
+    # ),
     local_planner=local_planner
 )
+
 
 
 problem = PlanningProblem(planner)
@@ -80,10 +98,10 @@ goal_region.set_goal_state(state_goal)
 path, data = problem.solve(
     state_start,
     goal_region,
-    min_planning_time=10,
-    max_planning_time=20
+    max_iters=300,
+    min_planning_time=10
 )
-print("Planning done, pre processing path")
+print("Planning done, pre processing path", data.meta_data_problem)
 
 path_pp = np.array([])
 

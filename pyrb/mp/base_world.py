@@ -12,9 +12,12 @@ class BaseMPWorld(metaclass=ABCMeta):
         self.robot = robot
         self.obstacles = obstacles
 
+    def sample_feasible_config(self):
+        return np.random.uniform(self.robot.joint_limits[:, 0], self.robot.joint_limits[:, 1])
+
     def sample_collision_free_state(self):
         while True:
-            state = np.random.uniform(self.robot.joint_limits[:, 0], self.robot.joint_limits[:, 1])
+            state = self.sample_feasible_config()
             if self.is_collision_free_state(state):
                 return state
 

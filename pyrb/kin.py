@@ -15,7 +15,7 @@ def angle_from_SE3_rot_z(T):
 
 
 def SE3_mul(T, p):
-    return T[:3, :3] @ p + T[:3, 3]
+    return T[:3, :3] @ p + T[:3, 3].reshape(-1, 1)  # TODO: this is dangerous
 
 
 def SE3_mul_many(T, points):
@@ -36,10 +36,10 @@ def SE3_inv(T):
 def rot_trans_to_SE3(R=None, p=None):
     T = np.eye(4)
     if R is not None:
-        T[0:3, 0:3] = R
+        T[:3, :3] = R
     if p is not None:
         p = p.ravel()
-        T[0: p.shape[0], 3] = p
+        T[:p.shape[0], 3] = p
     return T
 
 
@@ -51,6 +51,27 @@ def rot_z_to_SO3(angle):
     R[1, 0] = np.sin(angle)
     return R
 
+
+def rot_y_to_SO3(angle):
+    R = np.eye(3)
+    c_theta = np.cos(angle)
+    s_theta = np.sin(angle)
+    R[0, 0] = c_theta
+    R[2, 2] = c_theta
+    R[0, 2] = s_theta
+    R[2, 0] = -s_theta
+    return R
+
+
+def rot_x_to_SO3(angle):
+    R = np.eye(3)
+    c_theta = np.cos(angle)
+    s_theta = np.sin(angle)
+    R[1, 1] = c_theta
+    R[2, 2] = c_theta
+    R[1, 2] = -s_theta
+    R[2, 1] = s_theta
+    return R
 
 def vec_to_skew(w_vec):
     w_vec = w_vec.reshape(-1)
@@ -119,6 +140,7 @@ class SerialKinematicChain:
         all_cs = []
         for screw_vec, theta, cs in kinematic_chain:
             if screw_vec is not None:
+                # TODO: np.multidot?
                 T = T @ SE3_exp(screw_vec, theta)
             all_cs.append(T @ cs)
         return all_cs

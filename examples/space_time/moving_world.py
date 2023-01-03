@@ -125,9 +125,9 @@ class MovingBox1DimWorld(BaseMPTimeVaryingWorld):
         #     ax.plot(path[:, 0], path[:, 1], ls="-", marker=".", label="path")
         ax.set_title("Configuration space, $\mathcal{C}$")
         ax.set_xlabel(r"$\theta_1$")
-        ax.set_ylabel(r"time")
+        ax.set_ylabel(r"t")
         ax.set_xlim(joint_limits[0, 0], joint_limits[0, 1])
-        ax.set_ylim(t_start, time_horizon + 5)
+        ax.set_ylim(t_start, time_horizon)
         # ax.legend(loc="best")
 
 

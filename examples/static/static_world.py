@@ -139,11 +139,13 @@ class StaticBoxesWorld(BaseMPWorld):
             p_global = pyrb.kin.SE3_mul(obs.transform, p_local)
             static_obstacles.append(Rectangle(tuple(p_global)[:2], obs.width, obs.height, angle=np.rad2deg(obs.angle)))
         ax.add_collection(PatchCollection(static_obstacles, color="green"))
-        ax.set_xlim(*self.data.x.to_tuple())
-        ax.set_ylim(*self.data.y.to_tuple())
-        ax.set_xlabel("x")
-        ax.set_ylabel("y")
-        ax.set_title("World, $\mathcal{W} = \mathbb{R}^2$")
+        ax.set_xlim(-0.5, 0.5)
+        ax.set_ylim(-0.5, 0.5)
+        ax.set_xticks([])
+        ax.set_yticks([])
+        # ax.set_xlabel("x")
+        # ax.set_ylabel("y")
+        # ax.set_title("World, $\mathcal{W} = \mathbb{R}^2$")
 
     def render_configuration_space(self, ax):
         thetas_raw = np.linspace(-np.pi, np.pi, 100)
@@ -158,12 +160,26 @@ class StaticBoxesWorld(BaseMPWorld):
 
         collision_mask = np.array(collision_mask).reshape(100, 100)
         ax.pcolormesh(theta_grid_1, theta_grid_2, collision_mask)
-        ax.set_title("Configuration space, $\mathcal{C}$")
-        ax.set_xlabel(r"$\theta_1$")
-        ax.set_ylabel(r"$\theta_2$")
+        # ax.set_title("Configuration space, $\mathcal{C}$")
+        # ax.set_xlabel(r"$\theta_1$")
+        # ax.set_ylabel(r"$\theta_2$")
         joint_limits = self.robot.joint_limits
         ax.set_xlim(joint_limits[0, 0], joint_limits[0, 1])
         ax.set_ylim(joint_limits[1, 0], joint_limits[1, 1])
+        ax.set_xticks([])
+        ax.set_yticks([])
 
 
+if __name__ == "__main__":
+    import numpy as np
+    import matplotlib
+
+    np.random.seed(1)
+    matplotlib.rc("font", size=18)
+    world = StaticBoxesWorld()
+    world.reset()
+    fig, ax1 = plt.subplots(1, 1) # , figsize=(6, 6))
+    world.render_configuration_space(ax1)
+    plt.show()
+    # world.view()
 

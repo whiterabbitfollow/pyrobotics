@@ -19,3 +19,16 @@ def robot_configuration_to_patch_collection(robot, **kwargs):
         rectangles.append(Rectangle((x, y), width, height, angle))
     return PatchCollection(rectangles, **kwargs)
 
+
+def render_robot_configuration_meshes(ax, robot, **kwargs):
+    for link in robot.links:
+        mesh = link.get_mesh(apply_trf=True)
+        if mesh is None:
+            continue
+        ax.plot_trisurf(
+            mesh.vertices[:, 0],
+            mesh.vertices[:, 1],
+            triangles=mesh.faces,
+            Z=mesh.vertices[:, 2],
+            **kwargs
+        )

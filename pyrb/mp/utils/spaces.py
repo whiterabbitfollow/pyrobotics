@@ -23,9 +23,12 @@ class RealVectorStateSpace:
     def linspace(self, state_src, state_dst, nr_points):
         return np.linspace(state_src, state_dst, nr_points)
 
+    def sample_feasible_state(self):
+        return np.random.uniform(self.limits[:, 0], self.limits[:, 1])
+
     def sample_collision_free_state(self):
         while True:
-            state = np.random.uniform(self.limits[:, 0], self.limits[:, 1])
+            state = self.sample_feasible_state()
             if self.world.is_collision_free_state(state):
                 return state
 
