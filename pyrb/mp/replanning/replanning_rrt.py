@@ -44,7 +44,7 @@ class BaseReRRT:
             time_elapsed = time.time() - time_s
             iter_cnt += 1
         path = self.planner.get_path()
-        return path
+        return {"time_elapsed": time_elapsed}, path
 
     def validate_path(self, path):
         min_step_size = 0.05

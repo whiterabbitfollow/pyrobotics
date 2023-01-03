@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from pyrb.mp.planners.local_planners import LocalPlannerSpaceTime
-from pyrb.mp.post_processing import post_process_path_space_time_systematic_minimal_time
+from pyrb.mp.post_processing.post_processing import PathPostProcessorRandomST
 from pyrb.mp.utils.goal_regions import RealVectorMinimizingTimeGoalRegion
 
 
@@ -36,6 +36,8 @@ path = np.array([
 
 goal_region = RealVectorMinimizingTimeGoalRegion(radius=.01)
 goal_region.set_goal_state(np.array([1.1, np.inf]))
+
+PathPostProcessorRandomST()
 
 
 path_pp = post_process_path_space_time_systematic_minimal_time(space, local_planner, goal_region, path)
