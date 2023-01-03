@@ -90,4 +90,4 @@ class RRTPlanner:
     def get_planning_meta_data(self):
         i = self.get_goal_state_index()
         cost = self.tree.cost_to_verts[i] if i is not None else np.inf
-        return {"cost_best_path": cost}
+        return {"cost_best_path": cost, "nr_nodes": self.tree.vert_cnt}

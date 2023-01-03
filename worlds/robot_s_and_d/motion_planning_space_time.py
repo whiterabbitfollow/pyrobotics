@@ -56,6 +56,8 @@ success_cnt = 0
 cnt = 0
 time_elapsed_acc = 0
 time_elapsed_max = 0
+max_nr_nodes_expanded_success = 0
+max_nr_nodes_expanded_all = 0
 
 tbar = tqdm.tqdm()
 
@@ -81,11 +83,15 @@ while True:
     success_cnt += success
     if success:
         time_elapsed_acc += data.meta_data_problem["time_elapsed"]
-        time_elapsed_max += max(time_elapsed_max, data.meta_data_problem["time_elapsed"])
+        time_elapsed_max = max(time_elapsed_max, data.meta_data_problem["time_elapsed"])
+        max_nr_nodes_expanded_success = max(max_nr_nodes_expanded_success, data.meta_data_problem["time_elapsed"])
+    max_nr_nodes_expanded_all = max(max_nr_nodes_expanded_all, data.meta_data_problem["nr_nodes"])
     tbar.update(1)
     tbar.set_description(
         f"cnt: {cnt:0.2f} "
         f"success_rate: {success_cnt / cnt:0.2f} "
         f"mean_te: {time_elapsed_acc / cnt:0.2f} "
-        f"max_te: {time_elapsed_max:0.2f}"
+        f"max_te: {time_elapsed_max:0.2f} "
+        f"max_nr_nodes_expanded_success: {max_nr_nodes_expanded_success: 0.2f} "
+        f"max_nr_nodes_expanded_all: {max_nr_nodes_expanded_all: 0.2f}"
     )
