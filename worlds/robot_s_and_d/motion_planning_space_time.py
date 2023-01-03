@@ -1,3 +1,4 @@
+import tqdm
 from matplotlib.patches import Rectangle
 
 from examples.space_time.make import compile_all_planners, Planners
@@ -56,6 +57,8 @@ cnt = 0
 time_elapsed_acc = 0
 time_elapsed_max = 0
 
+tbar = tqdm.tqdm()
+
 while True:
     t_start = np.random.randint(0, int(TIME_HORIZON * 0.1))
     world.set_time(t_start)
@@ -79,7 +82,8 @@ while True:
     if success:
         time_elapsed_acc += data.meta_data_problem["time_elapsed"]
         time_elapsed_max += max(time_elapsed_max, data.meta_data_problem["time_elapsed"])
-    print(
+    tbar.update(1)
+    tbar.set_description(
         f"cnt: {cnt:0.2f} "
         f"success_rate: {success_cnt / cnt:0.2f} "
         f"mean_te: {time_elapsed_acc / cnt:0.2f} "
