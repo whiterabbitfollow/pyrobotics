@@ -48,8 +48,8 @@ problem = PlanningProblem(
     planner=planner
 )
 
-collision_cnt = 0
 success_cnt = 0
+collision_cnt = 0
 terminated_cnt = 0
 cnt = 0
 
@@ -90,13 +90,24 @@ while True:
             world.robot.set_config(config)
 
         nr_steps += 1
-        tbar.set_description(
-            f"{result_str} distance to goal "
-            f"{np.linalg.norm(config-config_goal):.2f} "
-            f"nr steps: {nr_steps} "
-            f"standing still steps: {nr_steps_still}"
-        )
         terminate = nr_steps_still > max_nr_steps_still
+        result_str = f"cnt: {cnt} steps: {nr_steps} steps still: {nr_steps_still} " + " ".join(
+            [
+                "%s: %0.2f" % (s, v / cnt) if cnt > 0 else "%s: %0.2f" %(s, np.nan)
+                for s, v in zip(
+                ["success_rate", "coll_rate", "terminated_ratio"],
+                [success_cnt, collision_cnt, terminated_cnt]
+            )
+                
+            ]
+        )
+        tbar.set_description(result_str)
+        #tbar.set_description(
+        #    f"{result_str} distance to goal "
+        #    f"{np.linalg.norm(config-config_goal):.2f} "
+        #    f"nr steps: {nr_steps} "
+        #    f"standing still steps: {nr_steps_still}"
+        #)
         # debug I guess
         # world.robot.set_config(config_goal)
         # render_robot_configuration_meshes(ax, world.robot, color="orange", alpha=0.5)
@@ -108,16 +119,6 @@ while True:
     terminated_cnt += terminate
     cnt += 1
     success_cnt += in_goal
-    result_str = " ".join(
-        [
-            "%s: %f.2" % (s, v)
-            for s, v in zip(
-            ["cnt", "success_rate", "coll_rate", "terminated_ratio"],
-            [cnt, success_cnt / cnt, collision_cnt / cnt, terminated_cnt/cnt]
-        )
-        ]
-    )
-    tbar.set_description(result_str)
 
 
 
