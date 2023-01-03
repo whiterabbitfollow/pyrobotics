@@ -1,9 +1,26 @@
 import numpy as np
 
 from pyrb.mp.utils.constants import LocalPlannerStatus
+from typing import Tuple
+
+from abc import ABCMeta, abstractmethod
 
 
-class LocalPlanner:
+class BaseLocalPlanner(metaclass=ABCMeta):
+
+    @abstractmethod
+    def plan(
+            self,
+            space,
+            state_src,
+            state_dst,
+            max_distance=None,
+            goal_region=None
+    ) -> Tuple[LocalPlannerStatus, np.ndarray]:
+        raise NotImplementedError()
+
+
+class LocalPlanner(BaseLocalPlanner):
 
     def __init__(self, min_coll_step_size, max_distance):
         self.min_coll_step_size = min_coll_step_size

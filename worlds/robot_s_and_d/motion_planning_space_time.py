@@ -4,7 +4,7 @@ from matplotlib.patches import Rectangle
 from examples.space_time.make import compile_all_planners, Planners
 from examples.space_time.moving_world import MovingBox1DimWorld
 from examples.utils import render_tree
-from pyrb.mp.planners.local_planners import LocalPlannerSpaceTime
+
 from pyrb.mp.planners.rrt import RRTPlanner
 from pyrb.mp.problem import PlanningProblem
 import numpy as np
@@ -15,7 +15,11 @@ from matplotlib.patches import Polygon
 from pyrb.mp.utils.goal_regions import RealVectorTimeGoalRegion, RealVectorMinimizingTimeGoalRegion
 from pyrb.mp.utils.spaces import RealVectorTimeSpace, RealVectorPastTimeSpace
 from pyrb.mp.utils.trees.tree import Tree
+
+
 from worlds.robot_s_and_d.world import RobotCylinderWorld
+from worlds.robot_s_and_d.mp.local_planner import LocalPlanner
+
 
 np.random.seed(14)  # Challenging, solvable with ~200 steps...
 

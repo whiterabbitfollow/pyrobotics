@@ -106,5 +106,5 @@ class WorldData2D:
 class WorldData1D:
     x: Range
 
-    def __init__(self, xs, ys):
+    def __init__(self, xs):
         self.x = Range(*xs)
