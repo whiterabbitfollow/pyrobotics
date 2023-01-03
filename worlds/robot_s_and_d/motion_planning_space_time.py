@@ -84,8 +84,8 @@ while True:
     if success:
         time_elapsed_acc += data.meta_data_problem["time_elapsed"]
         time_elapsed_max = max(time_elapsed_max, data.meta_data_problem["time_elapsed"])
-        max_nr_nodes_expanded_success = max(max_nr_nodes_expanded_success, data.meta_data_problem["time_elapsed"])
-    max_nr_nodes_expanded_all = max(max_nr_nodes_expanded_all, data.meta_data_problem["nr_nodes"])
+        max_nr_nodes_expanded_success = max(max_nr_nodes_expanded_success, data.meta_data_planner["nr_nodes"])
+    max_nr_nodes_expanded_all = max(max_nr_nodes_expanded_all, data.meta_data_planner["nr_nodes"])
     tbar.update(1)
     tbar.set_description(
         f"cnt: {cnt:0.2f} "
