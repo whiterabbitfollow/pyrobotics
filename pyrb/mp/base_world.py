@@ -34,8 +34,9 @@ class BaseMPWorld(metaclass=ABCMeta):
 class BaseMPTimeVaryingWorld(BaseMPWorld):
 
     def __init__(self, data, robot: MotionPlanningAgentActuated, obstacles):
-        self.t = 0
         super().__init__(data, robot, obstacles)
+        self.t = 0
+        self.robot = robot
 
     def set_time(self, t):
         self.t = t
