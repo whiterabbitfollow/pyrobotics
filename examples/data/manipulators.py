@@ -27,7 +27,7 @@ DATA_MANIPULATOR_3DOF = {
         {
             "position": np.array([0.0, 0.0, 0.0]),
             "rotation": np.array([0.0, 0.0, 1.0]),
-            "limits": [-np.pi / 2, np.pi / 2]
+            "limits": [-np.pi * (3/4), np.pi * (3/4)]
         },
         {
             "position": np.array([0.0, 0.0, 0.0]),
