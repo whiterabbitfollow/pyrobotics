@@ -1,7 +1,7 @@
 import numpy as np
 
-
 from pyrb.mp.utils.constants import LocalPlannerStatus
+from pyrb.mp.utils.spaces import BaseStateSpace
 from pyrb.mp.utils.trees.tree import Tree
 
 
@@ -10,7 +10,7 @@ class TreeRewire(Tree):
     def __init__(self, *args, local_planner, space, nearest_radius, **kwargs):
         super().__init__(*args, **kwargs, vertex_dim=space.dim)
         self.nearest_radius = nearest_radius
-        self.space = space
+        self.space: BaseStateSpace = space
         self.local_planner = local_planner
 
     def append_vertex_without_rewiring(self, state, i_parent, edge_cost):

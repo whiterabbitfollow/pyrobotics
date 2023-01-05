@@ -15,31 +15,8 @@ class BaseMPWorld(metaclass=ABCMeta):
     def sample_feasible_config(self):
         return np.random.uniform(self.robot.joint_limits[:, 0], self.robot.joint_limits[:, 1])
 
-    def sample_collision_free_state(self):
-        while True:
-            state = self.sample_feasible_config()
-            if self.is_collision_free_state(state):
-                return state
-
-    def is_collision_free_transition(self, state_src, state_dst, nr_coll_steps=10, return_distance=False):
-        # Assumes state_src is collision free...
-        is_collision_free = False
-        distance = np.inf
-        for i in range(1, nr_coll_steps + 1):
-            alpha = i / nr_coll_steps
-            state = state_dst * alpha + (1 - alpha) * state_src
-            is_collision_free = self.is_collision_free_state(state)
-            if return_distance:
-                distance = min(self.get_min_distance_to_obstacle(), distance)
-            if not is_collision_free:
-                break
-        if return_distance:
-            return is_collision_free, distance
-        else:
-            return is_collision_free
-
-    def is_collision_free_state(self, state) -> bool:
-        self.robot.set_config(state)
+    def is_collision_free_config(self, config) -> bool:
+        self.robot.set_config(config)
         return not self.robot.collision_manager.in_collision_other(self.obstacles.collision_manager)
 
     def get_min_distance_to_obstacle(self) -> float:
@@ -59,18 +36,6 @@ class BaseMPTimeVaryingWorld(BaseMPWorld):
     def __init__(self, data, robot: MotionPlanningAgentActuated, obstacles):
         self.t = 0
         super().__init__(data, robot, obstacles)
-
-    def sample_collision_free_state(self):
-        while True:
-            config = np.random.uniform(self.robot.joint_limits[:, 0], self.robot.joint_limits[:, 1])
-            if super().is_collision_free_state(config):
-                return config
-
-    def is_collision_free_state(self, state) -> bool:
-        config = state[:-1]
-        t = state[-1]
-        self.set_time(t)
-        return super().is_collision_free_state(config)
 
     def set_time(self, t):
         self.t = t

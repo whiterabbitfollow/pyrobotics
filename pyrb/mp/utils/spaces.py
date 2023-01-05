@@ -1,12 +1,52 @@
+from abc import ABCMeta, abstractmethod
+
 import numpy as np
 
+from pyrb.mp.base_world import BaseMPWorld, BaseMPTimeVaryingWorld
 
-class RealVectorStateSpace:
-    # R^n
-    def __init__(self, world, dim, limits):
+
+class BaseStateSpace(metaclass=ABCMeta):
+
+    def __init__(self, world: BaseMPWorld, dim, limits):
         self.world = world
         self.dim = dim
         self.limits = limits
+
+    @abstractmethod
+    def transition_cost(self, state_src, state_dst):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def find_nearest_state(self, states, state):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def sample_collision_free_state(self):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def is_collision_free_state(self, state):
+        raise NotImplementedError()
+
+    def is_collision_free_transition(self, state_src, state_dst, min_step_size=None, nr_steps=None):
+        if min_step_size is None and nr_steps is None:
+            raise RuntimeError("Need to specify either min_step_size or nr_steps")
+        if min_step_size is not None:
+            dist = np.linalg.norm(state_dst - state_src)
+            nr_coll_steps = max(int(dist / min_step_size), 1)
+        else:
+            nr_coll_steps = nr_steps
+        is_collision_free = False
+        for i in range(1, nr_coll_steps + 1):
+            alpha = i / nr_coll_steps
+            state = state_dst * alpha + (1 - alpha) * state_src
+            is_collision_free = self.is_collision_free_state(state)
+            if not is_collision_free:
+                break
+        return is_collision_free
+
+
+class RealVectorStateSpace(BaseStateSpace):
 
     def is_within_bounds(self, state):
         return ((self.limits[:, 0] <= state) & (state <= self.limits[:, 1])).all()
@@ -29,13 +69,11 @@ class RealVectorStateSpace:
     def sample_collision_free_state(self):
         while True:
             state = self.sample_feasible_state()
-            if self.world.is_collision_free_state(state):
+            if self.is_collision_free_state(state):
                 return state
 
-    def is_collision_free_transition(self, state_src, state_dst, min_step_size):
-        dist = np.linalg.norm(state_dst - state_src)
-        nr_coll_steps = max(int(dist/min_step_size), 1)
-        return self.world.is_collision_free_transition(state_src, state_dst, nr_coll_steps=nr_coll_steps)
+    def is_collision_free_state(self, state):
+        return self.world.is_collision_free_config(state)
 
     def distance(self, state_1, state_2):
         return np.linalg.norm(state_1 - state_2)
@@ -53,19 +91,26 @@ class RealVectorStateSpace:
         return np.linalg.norm(states_src - state_dst, axis=1)
 
 
-class RealVectorTimeSpace:
+class RealVectorTimeSpace(BaseStateSpace):
 
     # (R^n, R_+)
     # Time flows forward
 
-    def __init__(self, world, dim, limits, max_time, goal_region=None, min_time=0, gamma=0.1):
+    def __init__(
+            self,
+            world: BaseMPTimeVaryingWorld,
+            dim,
+            limits,
+            max_time,
+            goal_region=None,
+            min_time=0,
+            gamma=0.1
+    ):
+        super().__init__(world, dim + 1, limits)
         self.world = world
-        self.dim = dim + 1
-        self.limits = limits
-        self.max_time = max_time
-        self.max_actuation = world.robot.max_actuation
-        self.goal_region = goal_region
         self.min_time = min_time
+        self.max_time = max_time
+        self.goal_region = goal_region
         self.gamma = gamma
 
     def set_time_interval(self, t_min, t_max):
@@ -90,17 +135,13 @@ class RealVectorTimeSpace:
         return i_state_nearest, state_nearest
 
     def get_nearest_states_indices(self, states, state, nearest_radius):
+        # TODO: deprecated?
         raise NotImplementedError()
 
     def sample_collision_free_config(self):
-        config_dim = self.world.robot.nr_joints
-        time_dim = 1
-        state = np.zeros((config_dim + time_dim, ))
-        state[-1] = self.world.t
         while True:
-            state[:config_dim] = np.random.uniform(self.limits[:, 0], self.limits[:, 1])
-            if self.world.is_collision_free_state(state):
-                config = state[:config_dim]
+            config = np.random.uniform(self.limits[:, 0], self.limits[:, 1])
+            if self.world.is_collision_free_config(config):
                 return config
 
     def sample_collision_free_state(self):
@@ -113,8 +154,15 @@ class RealVectorTimeSpace:
             # TODO: should constrain sampling based on t... actuation etc.
             config = np.random.uniform(self.limits[:, 0], self.limits[:, 1])
             state = np.append(config, t)
-            if self.world.is_collision_free_state(state):
+            self.world.set_time(t)
+            if self.world.is_collision_free_config(config):
                 return state
+
+    def is_collision_free_state(self, state):
+        config = state[:-1]
+        t = state[-1]
+        self.world.set_time(t)
+        return self.world.is_collision_free_config(config)
 
     def distance(self, state_1, state_2):
         return np.linalg.norm(state_1[:-1] - state_2[:-1])
@@ -127,11 +175,6 @@ class RealVectorTimeSpace:
 
     def detransition(self, t, dt=1):
         return max(t - dt, 0)
-
-    def is_collision_free_transition(self, state_src, state_dst, min_step_size):
-        dist = self.distance(state_src, state_dst)
-        nr_coll_steps = max(int(dist / min_step_size), 2)
-        return self.world.is_collision_free_transition(state_src, state_dst, nr_coll_steps=nr_coll_steps)
 
     def linspace(self, state_src, state_dst, nr_points):
         return np.linspace(state_src, state_dst, nr_points)
@@ -175,17 +218,15 @@ class RealVectorTimeSpace:
         return costs
 
 
-
 class RealVectorPastTimeSpace(RealVectorTimeSpace):
     # (R^n, R_+)
     # Time flows backwards
-    def __init__(self, world, dim, limits, max_time, goal_region=None, min_time=0, gamma = .1):
+    def __init__(self, world, dim, limits, max_time, goal_region=None, min_time=0, gamma=.1):
         self.world = world
         self.dim = dim + 1
         self.limits = limits
         self.max_time = max_time
         self.min_time = min_time
-        self.max_actuation = world.robot.max_actuation
         self.goal_region = goal_region
         self.gamma = gamma
 

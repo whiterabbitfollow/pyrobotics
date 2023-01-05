@@ -19,6 +19,16 @@ class BaseLocalPlanner(metaclass=ABCMeta):
     ) -> Tuple[LocalPlannerStatus, np.ndarray]:
         raise NotImplementedError()
 
+    def coll_check_status(self, collision_free_transition, path, state_dst):
+        state_final_path = path[-1]
+        if collision_free_transition and np.isclose(state_final_path, state_dst).all():
+            status = LocalPlannerStatus.REACHED
+        elif collision_free_transition:
+            status = LocalPlannerStatus.ADVANCED
+        else:
+            status = LocalPlannerStatus.TRAPPED
+        return status
+
 
 class LocalPlanner(BaseLocalPlanner):
 
@@ -43,21 +53,12 @@ class LocalPlanner(BaseLocalPlanner):
         status = self.coll_check_status(collision_free_transition, path, state_dst)
         return status, path
 
-    def coll_check_status(self, collision_free_transition, path, state_dst):
-        state_final_path = path[-1]
-        if collision_free_transition and np.isclose(state_final_path, state_dst).all():
-            status = LocalPlannerStatus.REACHED
-        elif collision_free_transition:
-            status = LocalPlannerStatus.ADVANCED
-        else:
-            status = LocalPlannerStatus.TRAPPED
-        return status
 
+class LocalPlannerSpaceTime(BaseLocalPlanner):
 
-class LocalPlannerSpaceTime(LocalPlanner):
-
-    def __init__(self, max_actuation, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, nr_coll_steps_between_transition, max_actuation, max_distance):
+        self.nr_coll_steps_between_transition = nr_coll_steps_between_transition
+        self.max_distance = max_distance
         self.max_actuation = max_actuation
 
     def plan(self, space, state_src, state_dst, max_distance=None, goal_region=None):
@@ -99,6 +100,7 @@ class LocalPlannerSpaceTime(LocalPlanner):
             t_end = self.transition(t_src, dt=max_time_horizon, time_horizon=min(space.max_time, t_dst))
         else:
             t_end = t_dst
+        nr_steps = self.nr_coll_steps_between_transition + 1
         waypoints = [state_src]
         state_prev = state_src
         config_dst = state_dst[:-1]
@@ -116,7 +118,7 @@ class LocalPlannerSpaceTime(LocalPlanner):
             collision_free_transition = space.is_collision_free_transition(
                 state_src=state_prev,
                 state_dst=state_nxt,
-                min_step_size=self.min_coll_step_size
+                nr_steps=nr_steps
             )
             end = not collision_free_transition or (t_nxt == t_end) or is_in_global_goal
             end = end or acc_distance >= max_distance

@@ -1,9 +1,11 @@
 import logging
+from typing import Optional
 
 import numpy as np
 
 from pyrb.mp.utils.constants import LocalPlannerStatus
 from pyrb.mp.planners.rrt_informed import initialize_ellipsoid
+from pyrb.mp.utils.spaces import BaseStateSpace
 
 RRT_CONNECT_PLANNER_LOGGER_NAME = __file__
 logger = logging.getLogger(RRT_CONNECT_PLANNER_LOGGER_NAME)
@@ -16,7 +18,7 @@ class RRTConnectPlanner:
             tree_start,
             tree_goal,
             local_planner,
-            space=None
+            space: Optional[BaseStateSpace] = None
     ):
         self.state_start = None
         self.goal_region = None
@@ -63,7 +65,7 @@ class RRTConnectPlanner:
         return space.sample_collision_free_state()
 
     def run(self):
-        space = self.space or self.tree_a.space
+        space: BaseStateSpace = self.space or self.tree_a.space
         state_free = self.sample(space)
         i_nearest_a, state_nearest_a = space.find_nearest_state(self.tree_a.get_vertices(), state_free)
         if i_nearest_a is None or state_nearest_a is None:

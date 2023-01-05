@@ -3,6 +3,7 @@ import logging
 import numpy as np
 
 from pyrb.mp.utils.constants import LocalPlannerStatus
+from pyrb.mp.utils.spaces import BaseStateSpace
 
 RRT_PLANNER_LOGGER_NAME = __file__
 logger = logging.getLogger(RRT_PLANNER_LOGGER_NAME)
@@ -12,7 +13,7 @@ class RRTPlanner:
 
     def __init__(
             self,
-            space,
+            space: BaseStateSpace,
             tree,
             local_planner
     ):
