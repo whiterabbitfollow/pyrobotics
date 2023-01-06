@@ -31,7 +31,7 @@ class RealVectorTimeGoalRegion(RealVectorGoalRegion):
 
     def set_goal_state(self, state):
         self.state = state
-        self.time_horizon = state[-1]
+        self.time_horizon = state[-1]   # TODO: should be called t_max or t_upper
 
     def is_within(self, state):
         return np.linalg.norm(state[:-1] - self.state[:-1]) < self.radius and state[-1] == self.state[-1]
