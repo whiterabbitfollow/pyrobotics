@@ -5,7 +5,8 @@ from pyrb.mp.utils.spaces import BaseStateSpace
 
 class Tree:
 
-    def __init__(self, max_nr_vertices, vertex_dim):
+    def __init__(self, max_nr_vertices, vertex_dim, space=None):
+        self.space = space
         self.cost_to_verts = np.zeros(max_nr_vertices)
         self.edge_costs = np.zeros(max_nr_vertices)
         self.vertices = np.zeros((max_nr_vertices, vertex_dim))

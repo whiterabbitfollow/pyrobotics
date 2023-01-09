@@ -68,7 +68,7 @@ class RRTConnectPlanner:
         space: BaseStateSpace = self.space or self.tree_a.space
         state_free = self.sample(space)
         i_nearest_a, state_nearest_a = space.find_nearest_state(self.tree_a.get_vertices(), state_free)
-        if i_nearest_a is None or state_nearest_a is None:
+        if state_nearest_a is None:
             return
         status, local_path_a = self.local_planner.plan(
             space,
@@ -79,11 +79,13 @@ class RRTConnectPlanner:
             return
         i_parent_a = i_nearest_a
         for state_new_a in local_path_a:
-            edge_cost_a = space.transition_cost(state_new_a, self.tree_a.vertices[i_parent_a])
+            if i_parent_a is not None:
+                edge_cost_a = space.transition_cost(state_new_a, self.tree_a.vertices[i_parent_a])
+            else:
+                edge_cost_a = 0
             i_state_new_a = self.tree_a.append_vertex(state_new_a, i_parent=i_parent_a, edge_cost=edge_cost_a)
             if not self.connected:
                 self.connect_trees(i_state_new_a, state_new_a)
-
             if self.tree_a == self.tree_start and self.goal_region.is_within(state_new_a):
                 self.report_goal_state(i_state_new_a)
             i_parent_a = i_state_new_a
@@ -96,21 +98,24 @@ class RRTConnectPlanner:
     def connect_trees(self, i_state_new_a, state_new_a):
         space = self.space or self.tree_b.space
         i_nearest_b, state_nearest_b = space.find_nearest_state(self.tree_b.get_vertices(), state_new_a)
-        if i_nearest_b is None or state_nearest_b is None:
+        if state_nearest_b is None:
             return
         status, local_path_b = self.local_planner.plan(
             space,
             state_nearest_b,
             state_new_a,
-            max_distance=np.inf
+            connect=True
         )
         if status == LocalPlannerStatus.REACHED:
             i_parent_b = i_nearest_b
-            for state_new_b in local_path_b:
+            state_new_b = local_path_b[-1, :]
+            if i_parent_b is not None:
                 edge_cost_b = space.transition_cost(state_new_b, self.tree_b.vertices[i_parent_b])
-                i_parent_b = self.tree_b.append_vertex(
-                    state_new_b, i_parent=i_parent_b, edge_cost=edge_cost_b
-                )
+            else:
+                edge_cost_b = 0
+            i_parent_b = self.tree_b.append_vertex(
+                state_new_b, i_parent=i_parent_b, edge_cost=edge_cost_b
+            )
             i_state_start, i_state_goal = self.sort_indices(self.tree_a, i_state_new_a, i_parent_b)
             i_new_start = self.ingest_path_from_tree_goal(i_state_start, i_state_goal)
             logger.debug("Connected path")

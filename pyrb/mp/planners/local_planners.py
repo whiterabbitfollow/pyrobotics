@@ -36,9 +36,9 @@ class LocalPlanner(BaseLocalPlanner):
         self.min_coll_step_size = min_coll_step_size
         self.max_distance = max_distance
 
-    def plan(self, space, state_src, state_dst, max_distance=None, goal_region=None):
+    def plan(self, space, state_src, state_dst, connect=False, goal_region=None):
         # assumes state_src is collision free
-        max_distance = max_distance or self.max_distance
+        max_distance = np.inf if connect else self.max_distance
         distance_to_dst = space.distance(state_src, state_dst)
         state_dst_target = state_dst
         if distance_to_dst > max_distance:

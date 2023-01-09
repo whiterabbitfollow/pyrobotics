@@ -104,6 +104,7 @@ class RealVectorTimeSpace(BaseStateSpace):
             max_time,
             goal_region=None,
             min_time=0,
+            max_speed=np.inf,
             gamma=0.1
     ):
         super().__init__(world, dim + 1, limits)
@@ -112,25 +113,34 @@ class RealVectorTimeSpace(BaseStateSpace):
         self.max_time = max_time
         self.goal_region = goal_region
         self.gamma = gamma
+        self.max_speed = max_speed
 
     def set_time_interval(self, t_min, t_max):
         self.min_time = t_min
         self.max_time = t_max
 
     def is_within_bounds(self, state):
-        return ((self.limits[:, 0] <= state[:-1]) & (state[:-1] <= self.limits[:, 1])).all() and (self.min_time < state[-1] <= self.max_time)
+        return ((self.limits[:, 0] <= state[:-1]) & (state[:-1] <= self.limits[:, 1])).all() \
+            and \
+            (self.min_time < state[-1] <= self.max_time)
 
     def find_nearest_state(self, states, state):
         t = state[-1]
         config = state[:-1]
-        mask_valid_states = states[:, -1] < t
+        mask = states[:, -1] < t
+        any_valid_states_wrt_time = mask.any()
         i_state_nearest, state_nearest = None, None
-        if mask_valid_states.any():
-            gamma = 0.1
-            states_valid = states[mask_valid_states]
-            distances = np.linalg.norm(states_valid[:, :-1] - config, axis=1) + (t - states_valid[:, -1]) * gamma
+        if any_valid_states_wrt_time:
+            dq = states[:, :-1] - state[:-1]
+            dt = np.abs(states[:, :-1] - state[:-1])
+            speeds = np.linalg.norm(dq / dt, axis=1)
+            mask_valid_speeds = speeds < self.max_speed
+            mask = mask & mask_valid_speeds
+        if mask.any():
+            states_valid = states[mask, :]
+            distances = np.linalg.norm(states_valid[:, :-1] - config, axis=1) + (t - states_valid[:, -1]) * self.gamma
             i_vert_mask = np.argmin(distances)
-            i_state_nearest = mask_valid_states.nonzero()[0][i_vert_mask]
+            i_state_nearest = mask.nonzero()[0][i_vert_mask]
             state_nearest = states[i_state_nearest]
         return i_state_nearest, state_nearest
 
