@@ -15,6 +15,12 @@ class BaseMPWorld(metaclass=ABCMeta):
     def sample_feasible_config(self):
         return np.random.uniform(self.robot.joint_limits[:, 0], self.robot.joint_limits[:, 1])
 
+    def sample_collision_free_config(self):
+        while True:
+            config = self.sample_feasible_config()
+            if self.is_collision_free_config(config):
+                return config
+
     def is_collision_free_config(self, config) -> bool:
         self.robot.set_config(config)
         return not self.robot.collision_manager.in_collision_other(self.obstacles.collision_manager)
