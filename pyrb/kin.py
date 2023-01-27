@@ -15,7 +15,7 @@ def angle_from_SE3_rot_z(T):
 
 
 def SE3_mul(T, p):
-    return T[:3, :3] @ p + T[:3, 3].reshape(-1, 1)  # TODO: this is dangerous
+    return (T[:3, :3] @ p.reshape(-1, 1) + T[:3, 3].reshape(-1, 1)).ravel()  # TODO: this is dangerous
 
 
 def SE3_mul_many(T, points):
