@@ -24,6 +24,7 @@ class PathPostProcessor:
     def post_process(self, path, max_cnt=10, max_cnt_no_improvement=0):
         self.cnt = 0
         self.cnt_no_improvement = 0
+        self.reset()
         self.set_path(path)
         logger.debug("Started post processing")
         while (self.cnt < max_cnt or self.cnt_no_improvement < max_cnt_no_improvement) and self.path.shape[0] > 2:
@@ -43,6 +44,10 @@ class PathPostProcessor:
                 self.cnt_no_improvement += 1
             self.cnt += 1
         return self.path.copy()
+
+    def reset(self):
+        self.path = None
+        self.path_cost_start = np.inf
 
     def set_path(self, path):
         if self.path is None:
@@ -76,12 +81,12 @@ class PathPostProcessor:
             path_pp_new_arrs.append(state_dst.reshape(1, -1))
         else:
             path_pp_new_arrs.extend([state_src.reshape(1, -1), state_dst.reshape(1, -1)])
-
         if np.isclose(state_dst, path[indx_segment_dst + 1]).all():
             path_pp_new_arrs.append(path[indx_segment_dst + 2:, :])
         else:
             path_pp_new_arrs.append(path[indx_segment_dst + 1:, :])
         return np.vstack(path_pp_new_arrs)
+
 
 
 class PathPostProcessorRandom(PathPostProcessor):
@@ -134,6 +139,70 @@ class PathPostProcessorRandomST(PathPostProcessor):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.t_cumsum = None
+        self.t_start = None
+
+    def post_process(self, path, max_cnt=10, max_cnt_no_improvement=0):
+        self.cnt = 0
+        self.cnt_no_improvement = 0
+        self.reset()
+        self.set_path(path)
+        while (self.cnt < max_cnt or self.cnt_no_improvement < max_cnt_no_improvement) and self.path.shape[0] > 2:
+            indx_segment_src, state_src, indx_segment_dst, state_dst = self.get_points_from_path()
+            # try to connect src with goal
+            dt = np.linalg.norm(self.goal_region.state[:-1] - state_src[:-1]) / self.local_planner.max_actuation
+            state_dst_goal = np.append(self.goal_region.state[:-1], np.ceil(dt) + state_src[-1])
+            # self.goal_region
+            status, local_path = self.local_planner.plan(
+                self.space,
+                state_src=state_src,
+                state_dst=state_dst_goal,
+                # goal_region=goal_region,
+                max_distance=np.inf
+            )
+            if status == LocalPlannerStatus.REACHED:
+                path = self.set_new_tail(path, indx_segment_src, state_src, state_dst_goal)
+                self.set_path(path)
+                self.cnt_no_improvement = 0
+                continue
+
+            status, local_path = self.local_planner.plan(
+                self.space,
+                state_src=state_src,
+                state_dst=state_dst,
+                # goal_region=goal_region,
+                max_distance=np.inf
+            )
+            if status == LocalPlannerStatus.REACHED:
+                path = self.merge_segment_into_path(path, indx_segment_src, state_src, indx_segment_dst, state_dst)
+                self.set_path(path)
+                self.cnt_no_improvement = 0
+            else:
+                self.cnt_no_improvement += 1
+            # dt = np.linalg.norm(self.goal_region.q - state_dst[:-1]) / self.local_planner.max_actuation
+            # state_dst_goal = np.append(self.goal_region.q, int(dt) + state_dst[-1])
+            # status, local_path = self.local_planner.plan(
+            #     self.space,
+            #     state_src=state_dst,
+            #     state_dst=state_dst_goal,
+            #     # goal_region=goal_region,
+            #     max_distance=np.inf
+            # )
+            # if status == LocalPlannerStatus.REACHED:
+            #     path = self.set_new_tail(path, indx_segment_dst, state_dst, state_dst_goal)
+            #     self.set_path(path)
+            #     self.cnt_no_improvement = 0
+            self.cnt += 1
+        return self.path.copy()
+
+    def set_new_tail(self, path, indx_segment_src, state_src, state_tail):
+        path_pp_new_arrs = [
+            path[:(indx_segment_src + 1), :]
+        ]
+        if np.isclose(path[indx_segment_src], state_src).all():
+            path_pp_new_arrs.append(state_tail.reshape(1, -1))
+        else:
+            path_pp_new_arrs.extend([state_src.reshape(1, -1), state_tail.reshape(1, -1)])
+        return np.vstack(path_pp_new_arrs)
 
     def compute_path_cost(self, path):
         return np.linalg.norm(path[1:, :-1] - path[:-1, :-1], axis=1).sum()
@@ -143,20 +212,21 @@ class PathPostProcessorRandomST(PathPostProcessor):
         ts = path[:, -1]
         t_segments = ts[1:] - ts[:-1]
         self.t_cumsum = np.cumsum(t_segments)
+        self.t_start = path[0, -1]
 
     def get_points_from_path(self):
-        t_src = np.random.randint(0, self.t_cumsum[-2])
-        indx_segment_src = np.where(t_src <= self.t_cumsum)[0][0]
-        t_dst = np.random.randint(self.t_cumsum[indx_segment_src + 1], self.t_cumsum[-1] + 1)
-        indx_segment_dst = indx_segment_src + 1 + np.where(t_dst <= self.t_cumsum[indx_segment_src + 1:])[0][0]
-        state_src = self.get_state_from_segment(t_src, self.path[[indx_segment_src, indx_segment_src + 1], :])
-        state_dst = self.get_state_from_segment(t_dst, self.path[[indx_segment_dst, indx_segment_dst + 1], :])
+        dt_src = np.random.randint(0, self.t_cumsum[-2])
+        indx_segment_src = np.where(dt_src <= self.t_cumsum)[0][0]
+        dt_dst = np.random.randint(self.t_cumsum[indx_segment_src + 1], self.t_cumsum[-1] + 1)
+        indx_segment_dst = indx_segment_src + 1 + np.where(dt_dst <= self.t_cumsum[indx_segment_src + 1:])[0][0]
+        state_src = self.get_state_from_segment(dt_src, self.path[[indx_segment_src, indx_segment_src + 1], :])
+        state_dst = self.get_state_from_segment(dt_dst, self.path[[indx_segment_dst, indx_segment_dst + 1], :])
         return indx_segment_src, state_src, indx_segment_dst, state_dst
 
-    def get_state_from_segment(self, t, path_segment_sparse):
+    def get_state_from_segment(self, dt, path_segment_sparse):
         path_segment_dense = self.local_planner.interpolate_path_from_waypoints(path_sparse=path_segment_sparse)
         t_segment_start = path_segment_dense[0, -1]
-        t_src_segment = (t - t_segment_start).astype(int)
+        t_src_segment = (self.t_start + dt - t_segment_start).astype(int)
         state = path_segment_dense[t_src_segment]
         return state
 
